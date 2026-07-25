@@ -18,10 +18,10 @@ jobs:
           sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
           sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
 
-      - name: Ensure /nix/var/nix/builds exists and set permissions
+      - name: Ensure /nix/var/nix is accessible without daemon
         run: |
           sudo mkdir -p /nix/var/nix/builds
-          sudo chmod 777 /nix/var/nix
+          sudo chmod -R 777 /nix/var/nix
 
       - name: Run sandbox test
         run: ./start-sandbox.sh opencode --version
