@@ -2,7 +2,7 @@
   description = "sandbox-bwrap-nix development environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/7525d999cd850b9a488817abc89c75dc733acf17";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs = { self, nixpkgs }: let
@@ -42,7 +42,7 @@
         shellHook = ''
           export NIX_PATH=nixpkgs=${nixpkgs}
           echo "=== sandbox-bwrap-nix development shell ==="
-          echo "  nixpkgs: nixpkgs-unstable (commit 7525d99)"
+          echo "  nixpkgs: nixpkgs-unstable"
           echo "  tools: nix, git, bun, curl, uv, make, opencode"
         '';
 
