@@ -36,6 +36,6 @@ bwrap \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
-  --setenv TERM "$TERM" \
+  --setenv TERM "${TERM:-xterm-256color}" \
   --chdir "$PWD" \
   "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
