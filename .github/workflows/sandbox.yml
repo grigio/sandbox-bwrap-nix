@@ -11,19 +11,19 @@ jobs:
       - name: Install Nix + bubblewrap
         run: |
           sudo apt-get update
-          sudo apt-get install -y nix-bin nix-setup-systemd bubblewrap uidmap
+          sudo apt-get install -y nix-bin bubblewrap uidmap
 
       - name: Configure subuid/subgid for runner user
         run: |
           sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
           sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
 
-      - name: Enable flakes in nix config
+      - name: Set up Nix
         run: |
+          sudo mkdir -p /nix/store /nix/var/nix /etc/nix
           echo "experimental-features = nix-command flakes" | sudo tee /etc/nix/nix.conf
-
-      - name: Start nix daemon
-        run: sudo systemctl start nix-daemon
+          sudo nix-daemon &
+          sleep 2
 
       - name: Run sandbox test
         run: ./start-sandbox.sh opencode --version
