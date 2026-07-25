@@ -15,8 +15,7 @@ bwrap \
   --ro-bind /bin/bash /bin/bash \
   --ro-bind /usr/bin/nix /usr/bin/nix \
   --bind /usr/lib /usr/lib \
-  --bind /usr/lib64 /usr/lib64 \
-  --symlink /usr/lib64 /lib64 \
+  $( [ -d /usr/lib64 ] && echo "--bind /usr/lib64 /usr/lib64 --symlink /usr/lib64 /lib64" ) \
   --ro-bind /etc/resolv.conf /etc/resolv.conf \
   --ro-bind /etc/hosts /etc/hosts \
   --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
@@ -24,7 +23,7 @@ bwrap \
   --bind "$PWD" "$PWD" \
   --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
   --bind "$SCRIPT_DIR/sandbox-home" "$SCRIPT_DIR/sandbox-home" \
-  --bind "$HOME/.config/opencode/skills" "$SCRIPT_DIR/sandbox-home/.config/opencode/skills" \
+  $( [ -d "$HOME/.config/opencode/skills" ] && echo "--bind $HOME/.config/opencode/skills $SCRIPT_DIR/sandbox-home/.config/opencode/skills" || echo "--tmpfs $SCRIPT_DIR/sandbox-home/.config/opencode/skills" ) \
   --tmpfs /tmp \
   --proc /proc \
   --dev /dev \
