@@ -15,4 +15,4 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
 
       - name: Run sandbox test
-        run: sudo env PATH="$PATH" ./start-sandbox.sh opencode --version
+        run: sudo env PATH="$PATH" HOME="$HOME" ./start-sandbox.sh opencode --version
