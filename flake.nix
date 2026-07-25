@@ -17,13 +17,17 @@
         nix
         cacert
         curl
+        
         git
         bun
         uv
-        opencode
         gnumake
+
         micro
         less
+        fd
+        ripgrep
+        opencode
       ] ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
 
       shellHook = ''
