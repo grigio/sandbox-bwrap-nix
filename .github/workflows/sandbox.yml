@@ -21,6 +21,12 @@ jobs:
           sudo chmod 755 /nix/var/nix/db
           sudo systemctl restart nix-daemon || true
 
+      - name: Check flake evaluation
+        run: nix flake check
+
+      - name: Check formatting
+        run: nix run .#formatter -- --check flake.nix
+
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
 
