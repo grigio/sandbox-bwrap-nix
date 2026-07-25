@@ -1,5 +1,7 @@
 # sandbox-bwrap-nix
 
+[![Sandbox CI](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml/badge.svg)](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml)
+
 Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
 
 It's useful to run AI agent harness like `opencode` isolated from the main system and you can also install packages as normal user without mess the host system.
