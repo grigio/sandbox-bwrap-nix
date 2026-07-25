@@ -1,6 +1,9 @@
 export EDITOR=micro
 export PAGER=less
 export LANG=C
+export LC_ALL=C
+export TERM=xterm-256color
+export USER=nixuser
 
 if [ -n "$BASH_VERSION" ] && type complete &>/dev/null; then
   for _bc in /nix/store/*bash-completion*/share/bash-completion/bash_completion; do
