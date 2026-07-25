@@ -1,6 +1,8 @@
 # sandbox-bwrap-nix
 
-Run Nix commands in a lightweight bubblewrap sandbox.
+Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
+
+It's useful to run AI agent harness like `opencode` isolated from the main system and you can also install packages as normal user without mess the host system.
 
 Isolates Nix operations from your host filesystem while preserving access to `/nix/store` and `/nix/var/nix`. Useful for safely experimenting with Nix builds, running [OpenCode](https://opencode.ai) in a sandbox, or containing AI coding tools.
 
@@ -12,6 +14,8 @@ Isolates Nix operations from your host filesystem while preserving access to `/n
 
 This drops you into a sandboxed bash shell with Nix, git, bun, uv, and other tools pre-installed. The sandbox-home directory acts as `$HOME`.
 
+![sandbox-bwrap-nix demo](sandbox-bwrap-nix.gif)
+
 ## Installation
 
 Add a persistent alias to your shell config (e.g. `~/.bashrc` or `~/.zshrc`):
@@ -21,6 +25,38 @@ alias sss=/path/to/sandbox-bwrap-nix/start-sandbox.sh
 ```
 
 Replace `/path/to/sandbox-bwrap-nix` with the absolute path to this directory (use `pwd` to get it). After adding the line, reload with `source ~/.bashrc` (or open a new terminal), then launch with `sss`.
+
+### Example usage
+
+```
+➜  demo git:(master) ✗ ls ../
+-               examples      ggml.h            main           rec.wav
+bench           extra         ggml-metal.h      Makefile       run.sh
+bindings        ggml-alloc.c  ggml-metal.m      models         samples
+build           ggml-alloc.h  ggml-metal.metal  openvino       stream
+cmake           ggml-alloc.o  ggml.o            quantize       tests
+CMakeLists.txt  ggml.c        ggml-opencl.cpp   README.md      whisper.cpp
+coreml          ggml-cuda.cu  ggml-opencl.h     rec16.wav      whisper.h
+demo            ggml-cuda.h   LICENSE           rec16.wav.wts  whisper.o
+➜  demo git:(master) ✗ sss ls ../
+=== sandbox-bwrap-nix development shell ===
+  nixpkgs: nixpkgs-unstable (commit 7525d99)
+  tools: nix, git, bun, curl, uv, make, opencode
+demo
+➜  demo git:(master) ✗ opencode --version
+1.18.4
+➜  demo git:(master) ✗ sss opencode --version
+=== sandbox-bwrap-nix development shell ===
+  nixpkgs: nixpkgs-unstable (commit 7525d99)
+  tools: nix, git, bun, curl, uv, make, opencode
+1.18.3
+➜  demo git:(master) ✗ sss
+=== sandbox-bwrap-nix development shell ===
+  nixpkgs: nixpkgs-unstable (commit 7525d99)
+  tools: nix, git, bun, curl, uv, make, opencode
+● demo $ ls ../
+demo
+```
 
 ## How it works
 
@@ -74,6 +110,7 @@ bwrap is also lighter than containers — no daemon, no image pulls, no layers, 
 │       ├── nix/nix.conf    # Enables flakes + nix-command
 │       └── opencode/       # OpenCode config (skills, AGENTS.md)
 ├── .gitignore              # Ignores generated runtime artifacts
+├── LICENSE                 # MIT License
 └── README.md
 ```
 
@@ -101,3 +138,7 @@ nix flake update
 ```
 
 This updates `flake.lock` to the latest nixpkgs unstable commit.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
