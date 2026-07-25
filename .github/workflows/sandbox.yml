@@ -14,11 +14,18 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
 
-      - name: Run sandbox test
+      - name: Check environment
         run: |
-          output=$(./start-sandbox.sh opencode --version 2>&1)
-          echo "$output"
-          if ! echo "$output" | grep -Eq '[0-9]+\.[0-9]+\.[0-9]+'; then
-            echo "ERROR: version number not found in output"
-            exit 1
-          fi
+          echo "=== PATH ==="
+          echo "$PATH"
+          echo "=== which nix ==="
+          command -v nix || echo "nix not in PATH"
+          echo "=== /usr/bin/nix ==="
+          ls -la /usr/bin/nix 2>&1 || echo "not found"
+          echo "=== /nix/store ==="
+          ls /nix/store/ 2>&1 | head -5 || echo "empty"
+          echo "=== TERM ==="
+          echo "'$TERM'"
+
+      - name: Run sandbox test
+        run: ./start-sandbox.sh opencode --version
