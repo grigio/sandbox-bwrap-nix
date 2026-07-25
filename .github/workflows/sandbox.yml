@@ -25,7 +25,7 @@ jobs:
         run: nix flake check
 
       - name: Check formatting
-        run: nix run .#formatter -- --check flake.nix
+        run: nix run nixpkgs#nixpkgs-fmt -- --check flake.nix
 
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
