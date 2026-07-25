@@ -10,6 +10,17 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@v16
 
+      - name: Fix Nix daemon and database permissions
+        run: |
+          sudo mkdir -p /nix/var/nix/db
+          sudo mkdir -p /nix/var/nix/builds
+          sudo chown -R root:root /nix
+          sudo chmod 755 /nix
+          sudo chmod 755 /nix/var
+          sudo chmod 755 /nix/var/nix
+          sudo chmod 755 /nix/var/nix/db
+          sudo systemctl restart nix-daemon || true
+
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
 
@@ -17,11 +28,6 @@ jobs:
         run: |
           sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
           sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
-
-      - name: Ensure /nix/var/nix is accessible without daemon
-        run: |
-          sudo mkdir -p /nix/var/nix/builds
-          sudo chmod -R 777 /nix/var/nix
 
       - name: Run sandbox test
         run: ./start-sandbox.sh opencode --version
