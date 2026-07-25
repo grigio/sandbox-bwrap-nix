@@ -22,8 +22,6 @@ bwrap \
   --ro-bind /etc/resolv.conf /etc/resolv.conf \
   --ro-bind /etc/hosts /etc/hosts \
   --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
-  --ro-bind /etc/passwd /etc/passwd \
-  --ro-bind /etc/group /etc/group \
   --ro-bind /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt \
   --bind "$PWD" "$PWD" \
   --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \

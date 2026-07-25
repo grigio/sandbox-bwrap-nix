@@ -9,10 +9,13 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install bubblewrap
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
+
+      - name: Fix uidmap permissions for bwrap
+        run: sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
 
       - name: Run sandbox test
-        run: sudo env PATH="$PATH" HOME="$HOME" ./start-sandbox.sh opencode --version
+        run: ./start-sandbox.sh opencode --version
