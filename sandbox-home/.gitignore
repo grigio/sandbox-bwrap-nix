@@ -1,0 +1,13 @@
+/*
+!/.bash_profile
+!/.bashrc
+!/SANDBOX
+!/.gitconfig
+!/.config
+/.config/*
+!/.config/nix
+/.config/nix/*
+!/.config/nix/nix.conf
+!/.config/opencode
+/.config/opencode/*
+!/.config/opencode/AGENTS.md

@@ -8,14 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install bubblewrap
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
-
-      - name: Fix uidmap permissions for bwrap
-        run: sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
+      - name: Install Nix + bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y nix-bin nix-setup-systemd bubblewrap
 
       - name: Run sandbox test
-        run: ./start-sandbox.sh opencode --version
+        run: sudo ./start-sandbox.sh opencode --version
