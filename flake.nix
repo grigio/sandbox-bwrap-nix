@@ -42,7 +42,7 @@
         shellHook = ''
           export NIX_PATH=nixpkgs=${nixpkgs}
           echo "=== sandbox-bwrap-nix development shell ==="
-          echo "  nixpkgs: nixpkgs-unstable"
+          echo "  nixpkgs: nixpkgs-unstable (${self.inputs.nixpkgs.lastModifiedDate} - ${self.inputs.nixpkgs.shortRev})"
           echo "  tools: nix, git, bun, curl, uv, make, opencode"
         '';
 
