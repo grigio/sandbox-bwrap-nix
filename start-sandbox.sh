@@ -5,6 +5,7 @@ command -v bwrap >/dev/null 2>&1 || { echo "bwrap not found"; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 NIX_BIN=$(command -v nix) || { echo "nix not found"; exit 1; }
+NIX_BIN_REAL=$(readlink -f "$NIX_BIN")
 
 bwrap \
   --clearenv \
@@ -15,8 +16,7 @@ bwrap \
   --tmpfs /nix/var/nix/builds \
   --ro-bind /bin/sh /bin/sh \
   --ro-bind /bin/bash /bin/bash \
-  $( [ -f /usr/bin/nix ] && echo "--ro-bind /usr/bin/nix /usr/bin/nix" ) \
-  --ro-bind "$NIX_BIN" "$NIX_BIN" \
+  $(case "$NIX_BIN" in /nix/store/*|/nix/var/nix/*) ;; *) echo "--ro-bind $NIX_BIN $NIX_BIN" ;; esac) \
   --bind /usr/lib /usr/lib \
   $( [ -d /usr/lib64 ] && echo "--bind /usr/lib64 /usr/lib64 --symlink /usr/lib64 /lib64" ) \
   --ro-bind /etc/resolv.conf /etc/resolv.conf \
@@ -35,4 +35,4 @@ bwrap \
   --setenv TMPDIR /tmp \
   --setenv TERM "$TERM" \
   --chdir "$PWD" \
-  "$NIX_BIN" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
+  "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
