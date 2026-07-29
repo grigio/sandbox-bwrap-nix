@@ -3,7 +3,7 @@ name: update-flake-lock
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: write
@@ -13,18 +13,50 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
+      - uses: cachix/install-nix-action@v31
 
-      - name: Update flake.lock
+      - name: configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: update flake.lock
         run: nix flake update
 
-      - name: Create PR
-        uses: peter-evans/create-pull-request@v8
-        with:
-          commit-message: "chore: update flake.lock"
-          title: "chore: update flake.lock"
-          branch: update-flake-lock
-          delete-branch: true
+      - name: commit flake.lock
+        run: |
+          git add flake.lock
+          git commit -m "chore: weekly flake.lock update"
+
+      - name: validate flake
+        run: nix flake check --all-systems
+
+      - name: push branch
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          git branch -f auto/update-flake-lock
+          git push origin auto/update-flake-lock --force
+
+      - name: create PR
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_URL=$(gh pr create \
+            --base main \
+            --head auto/update-flake-lock \
+            --title "chore: weekly flake.lock update" \
+            --body "Automated weekly \`flake.lock\` update.
+            - \`nix flake update\` bumped all inputs to latest.
+            - Validated with \`nix flake check --all-systems\`.") || true
+          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      - name: merge PR
+        if: steps.create-pr.outputs.pr-url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge --squash "${{ steps.create-pr.outputs.pr-url }}" || true
