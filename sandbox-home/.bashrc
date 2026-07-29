@@ -1,7 +1,7 @@
 export EDITOR=micro
 export PAGER=less
-export LANG=C
-export LC_ALL=C
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
 export TERM=xterm-256color
 export USER=nixuser
 

@@ -35,11 +35,14 @@
               bun
               uv
               gnumake
+              jq
 
+              herdr
               micro
               less
               fd
               ripgrep
+              cargo
               opencode
             ] ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
 
@@ -47,7 +50,6 @@
               export NIX_PATH=nixpkgs=${nixpkgs}
               echo "=== sandbox-bwrap-nix development shell ==="
               echo "  nixpkgs: nixpkgs-unstable (${self.inputs.nixpkgs.lastModifiedDate} - ${self.inputs.nixpkgs.shortRev})"
-              echo "  tools: nix, git, bun, curl, uv, make, opencode"
             '';
 
             SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";

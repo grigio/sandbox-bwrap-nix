@@ -12,3 +12,4 @@ sandbox-home/.config/opencode/.gitignore
 sandbox-home/.config/opencode/package.json
 sandbox-home/.config/opencode/package-lock.json
 sandbox-home/.config/opencode/node_modules/
+/sandbox-home/.treehouse
