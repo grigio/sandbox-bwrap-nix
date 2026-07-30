@@ -21,6 +21,14 @@ echo "nixuser:x:${HOST_UID}:${HOST_GID}:sandbox user:${SCRIPT_DIR}/sandbox-home:
 grep -v "^${HOST_USER}:" /etc/group > "$SANDBOX_GROUP"
 echo "nixuser:x:${HOST_GID}:" >> "$SANDBOX_GROUP"
 
+# On NixOS /bin/bash may not exist; find bash via /bin/sh or PATH
+BASH_PATH=/bin/bash
+[ ! -f "$BASH_PATH" ] && command -v bash >/dev/null 2>&1 && BASH_PATH=$(readlink -f "$(command -v bash)")
+[ ! -f "$BASH_PATH" ] && [ -f /bin/sh ] && BASH_PATH=$(readlink -f /bin/sh)
+
+# On NixOS /etc/ssl/certs/ca-certificates.crt is a symlink chain into /nix/store
+SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/etc/ssl/certs/ca-certificates.crt")
+
 bwrap \
   --clearenv \
   --share-net \
@@ -31,16 +39,16 @@ bwrap \
   --bind /nix/var/nix /nix/var/nix \
   --tmpfs /nix/var/nix/builds \
   --ro-bind /bin/sh /bin/sh \
-  --ro-bind /bin/bash /bin/bash \
+  --ro-bind "$BASH_PATH" /bin/bash \
   --ro-bind "$NIX_BIN_REAL" /usr/bin/nix \
-  --ro-bind /usr/lib /usr/lib \
+  $( [ -d /usr/lib ] && echo "--ro-bind /usr/lib /usr/lib" ) \
   $( [ -d /usr/lib64 ] && echo "--ro-bind /usr/lib64 /usr/lib64 --symlink /usr/lib64 /lib64" ) \
   --ro-bind /etc/resolv.conf /etc/resolv.conf \
   --ro-bind /etc/hosts /etc/hosts \
   --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
   --ro-bind "$SANDBOX_PASSWD" /etc/passwd \
   --ro-bind "$SANDBOX_GROUP" /etc/group \
-  --ro-bind /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt \
+  --ro-bind "$SSL_CERT" /etc/ssl/certs/ca-certificates.crt \
   --bind "$PWD" "$PWD" \
   --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
   --bind "$SCRIPT_DIR/sandbox-home" "$SCRIPT_DIR/sandbox-home" \
