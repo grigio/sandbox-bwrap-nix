@@ -33,6 +33,9 @@ jobs:
       - name: validate flake
         run: nix flake check --all-systems
 
+      - name: print opencode version
+        run: nix develop --command opencode --version
+
       - name: push branch
         env:
           GIT_TERMINAL_PROMPT: "0"
