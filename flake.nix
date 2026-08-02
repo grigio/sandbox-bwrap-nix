@@ -43,6 +43,7 @@
               fd
               ripgrep
               cargo
+              yt-dlp
               opencode
             ] ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
 
