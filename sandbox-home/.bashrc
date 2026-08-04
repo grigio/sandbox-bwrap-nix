@@ -5,6 +5,9 @@ export LC_ALL=C.UTF-8
 export TERM=xterm-256color
 export USER=nixuser
 
+export JCODE_NO_AUTO_UPDATE=1
+
+
 if [ -n "$BASH_VERSION" ] && type complete &>/dev/null; then
   for _bc in /nix/store/*bash-completion*/share/bash-completion/bash_completion; do
     [ -f "$_bc" ] && . "$_bc" && break
