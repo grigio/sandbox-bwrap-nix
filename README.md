@@ -74,7 +74,8 @@ demo
 | SSL certs | bind (ro) | HTTPS support |
 | `sandbox-home/` | bind | Isolated home dir |
 | `/tmp` | tmpfs | Temporary files |
-| `/proc`, `/dev` | bind | Process / device access |
+| `/proc` | procfs | Process access |
+| `/dev` | tmpfs + device binds | Device access (`/dev/null`, `/dev/zero`, `/dev/urandom`, ... bound from host) |
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 

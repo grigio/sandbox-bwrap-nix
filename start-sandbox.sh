@@ -29,6 +29,8 @@ BASH_PATH=/bin/bash
 # On NixOS /etc/ssl/certs/ca-certificates.crt is a symlink chain into /nix/store
 SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/etc/ssl/certs/ca-certificates.crt")
 
+# A devtmpfs (--dev) often can't populate device nodes when unprivileged,
+# so build /dev explicitly: bind the essential nodes and symlink the rest.
 bwrap \
   --clearenv \
   --share-net \
@@ -55,7 +57,19 @@ bwrap \
   $( [ -d "$HOME/.config/opencode/skills" ] && echo "--bind $HOME/.config/opencode/skills $SCRIPT_DIR/sandbox-home/.config/opencode/skills" || echo "--tmpfs $SCRIPT_DIR/sandbox-home/.config/opencode/skills" ) \
   --tmpfs /tmp \
   --proc /proc \
-  --dev /dev \
+  --tmpfs /dev \
+  --bind /dev/null /dev/null \
+  --bind /dev/zero /dev/zero \
+  --bind /dev/full /dev/full \
+  --bind /dev/random /dev/random \
+  --bind /dev/urandom /dev/urandom \
+  --bind /dev/tty /dev/tty \
+  --symlink /proc/self/fd /dev/fd \
+  --symlink /proc/self/fd/0 /dev/stdin \
+  --symlink /proc/self/fd/1 /dev/stdout \
+  --symlink /proc/self/fd/2 /dev/stderr \
+  --tmpfs /dev/shm \
+  $( [ -d /dev/pts ] && echo "--devpts /dev/pts --symlink pts/ptmx /dev/ptmx" ) \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
