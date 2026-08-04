@@ -20,13 +20,13 @@
   outputs = { self, nixpkgs, jcode }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
-      forAllSystems = f: builtins.foldl' (acc: system: acc // { ${system} = f system; }) { } systems;
-
-      pkgsFor = system: import nixpkgs { inherit system; };
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+      # Reference nixpkgs' own lazily-evaluated package set. All outputs share
+      # the same per-system evaluation, unlike `import nixpkgs` which evaluates
+      # the whole tree anew on every call.
+      pkgsFor = system: nixpkgs.legacyPackages.${system};
     in
     {
-      formatter = forAllSystems (system: (pkgsFor system).nixpkgs-fmt);
-
       checks = forAllSystems (system: {
         default = self.devShells.${system}.default;
       });
@@ -61,7 +61,8 @@
               cargo
               yt-dlp
               opencode
-            ] ++ (if system == "x86_64-linux" then [ jcode' ] else [ ]) ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
+            ] ++ lib.optionals (system == "x86_64-linux") [ jcode' ]
+            ++ [ bash-completion bashInteractive ];
 
             shellHook = ''
               export NIX_PATH=nixpkgs=${nixpkgs}
