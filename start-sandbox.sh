@@ -69,7 +69,6 @@ bwrap \
   --symlink /proc/self/fd/1 /dev/stdout \
   --symlink /proc/self/fd/2 /dev/stderr \
   --tmpfs /dev/shm \
-  $( [ -d /dev/pts ] && echo "--devpts /dev/pts --symlink pts/ptmx /dev/ptmx" ) \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
