@@ -58,12 +58,12 @@ bwrap \
   --tmpfs /tmp \
   --proc /proc \
   --tmpfs /dev \
-  --bind /dev/null /dev/null \
-  --bind /dev/zero /dev/zero \
-  --bind /dev/full /dev/full \
-  --bind /dev/random /dev/random \
-  --bind /dev/urandom /dev/urandom \
-  --bind /dev/tty /dev/tty \
+  --dev-bind /dev/null /dev/null \
+  --dev-bind /dev/zero /dev/zero \
+  --dev-bind /dev/full /dev/full \
+  --dev-bind /dev/random /dev/random \
+  --dev-bind /dev/urandom /dev/urandom \
+  --dev-bind /dev/tty /dev/tty \
   --symlink /proc/self/fd /dev/fd \
   --symlink /proc/self/fd/0 /dev/stdin \
   --symlink /proc/self/fd/1 /dev/stdout \
