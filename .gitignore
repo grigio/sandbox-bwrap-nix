@@ -1,5 +1,6 @@
 # generated symlink
 .nix-profile
+/result
 
 # sandbox-home runtime/cache
 sandbox-home/.nix-profile

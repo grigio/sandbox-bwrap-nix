@@ -1,11 +1,23 @@
 {
   description = "sandbox-bwrap-nix development environment";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  # jcode is a prebuilt binary from the grigio Nix binary cache
+  # (https://grigio.github.io/jcode, install docs: https://github.com/grigio/jcode#install-flake).
+  # Applying these settings means `nix develop`, `nix build` and `nix flake check`
+  # in this repo download jcode and its crane dependency layer instead of
+  # compiling ~1000 crates from source.
+  nixConfig = {
+    extra-substituters = [ "https://grigio.github.io/jcode" ];
+    extra-trusted-public-keys = [ "grigio-jcode:WdqguwKdwOilH+ITvLO98qZy9x5HQ8Cl0xltHtSsUvQ=" ];
   };
 
-  outputs = { self, nixpkgs }:
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # jcode, prebuilt via the grigio Nix binary cache (https://grigio.github.io/jcode)
+    jcode.url = "github:grigio/jcode";
+  };
+
+  outputs = { self, nixpkgs, jcode }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = f: builtins.foldl' (acc: system: acc // { ${system} = f system; }) { } systems;
@@ -22,6 +34,10 @@
       devShells = forAllSystems (system:
         let
           pkgs = pkgsFor system;
+          # The grigio binary cache only publishes x86_64-linux, so jcode is a
+          # pure download there. On other systems it would compile ~1000 crates
+          # from source, which is not what this shell is for.
+          jcode' = jcode.packages.${system}.default or null;
         in
         {
           default = pkgs.mkShell {
@@ -45,7 +61,7 @@
               cargo
               yt-dlp
               opencode
-            ] ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
+            ] ++ (if system == "x86_64-linux" then [ jcode' ] else [ ]) ++ [ pkgs."bash-completion" pkgs.bashInteractive ];
 
             shellHook = ''
               export NIX_PATH=nixpkgs=${nixpkgs}

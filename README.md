@@ -14,7 +14,7 @@ Isolates Nix operations from your host filesystem while preserving access to `/n
 ./start-sandbox.sh
 ```
 
-This drops you into a sandboxed bash shell with Nix, git, bun, uv, and other tools pre-installed. The sandbox-home directory acts as `$HOME`.
+This drops you into a sandboxed bash shell with Nix, git, bun, uv, jcode, and other tools pre-installed. The sandbox-home directory acts as `$HOME`.
 
 ![sandbox-bwrap-nix demo](sandbox-bwrap-nix.gif)
 
@@ -78,7 +78,7 @@ demo
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
-Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, opencode, gnumake, micro, less**, and bash completion.
+Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, gnumake, micro, less**, and bash completion.
 
 ## Why bwrap instead of plain `nix develop`
 
@@ -92,6 +92,26 @@ Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev s
 | **Reproducibility** | Host state leaks in | Minimal, controlled surface |
 
 bwrap is also lighter than containers — no daemon, no image pulls, no layers, no `sudo`. Just namespaces and bind mounts.
+
+## jcode: prebuilt binary, no compilation
+
+[jcode](https://github.com/1jehuang/jcode) is provided as a prebuilt binary from the
+[grigio Nix binary cache](https://grigio.github.io/jcode)
+(install docs: <https://github.com/grigio/jcode#install-flake>). It is never compiled in
+this repo: the cache publishes both the `jcode` binary and its crane `cargoArtifacts`
+dependency layer, so `nix develop` only downloads the closure.
+
+The cache is configured in two places:
+
+- `nixConfig` in [`flake.nix`](flake.nix) — applies to every `nix develop`, `nix build`
+  and `nix flake check` run in this repo
+- `sandbox-home/.config/nix/nix.conf` — the Nix config inside the sandbox (Nix runs with
+  `HOME=sandbox-home`, so it reads this file)
+
+Paths the cache does not have fall back to building from source. The grigio
+cache only publishes **x86_64-linux**, so on that platform jcode is a pure
+download; on other systems (e.g. aarch64-linux) the dev shell simply omits
+jcode instead of compiling it from source.
 
 ## Requirements
 
@@ -109,7 +129,7 @@ bwrap is also lighter than containers — no daemon, no image pulls, no layers, 
 │   ├── .bash_profile       # Sources .bashrc
 │   ├── SANDBOX             # Marker file (empty)
 │   └── .config/
-│       ├── nix/nix.conf    # Enables flakes + nix-command
+│       ├── nix/nix.conf    # Enables flakes + nix-command + jcode binary cache
 │       └── opencode/       # OpenCode config (skills, AGENTS.md)
 ├── .gitignore              # Ignores generated runtime artifacts
 ├── LICENSE                 # MIT License
@@ -121,7 +141,7 @@ bwrap is also lighter than containers — no daemon, no image pulls, no layers, 
 A minimal home directory injected into the sandbox:
 
 - **`.bashrc`** — Custom PS1 with working directory and git branch, bash completion from the Nix store, colorized grep, `ll`/`la`/`l` aliases
-- **`nix.conf`** — `experimental-features = nix-command flakes`
+- **`nix.conf`** — `experimental-features = nix-command flakes`, plus the grigio jcode binary cache substituter and trust key
 - **`opencode/`** — Pre-configured with skills, AGENTS.md prompt instructions, and an opencode.jsonc config
 - Runtime caches (`.cache`, `.npm`, `.local`, `.nix-profile`, etc.) are gitignored
 
