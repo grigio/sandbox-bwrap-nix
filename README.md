@@ -1,6 +1,8 @@
 # sandbox-bwrap-nix
 
 [![Sandbox CI](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml/badge.svg)](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml)
+[![opencode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/opencode.json)](https://github.com/grigio/sandbox-bwrap-nix)
+[![jcode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/jcode.json)](https://github.com/grigio/sandbox-bwrap-nix)
 
 Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
 
@@ -125,6 +127,8 @@ jcode instead of compiling it from source.
 ├── start-sandbox.sh        # Entry point — invokes bwrap
 ├── flake.nix               # Nix flake with dev shell definition
 ├── flake.lock              # Pinned nixpkgs revision
+├── badges/                 # Version badge data (opencode, jcode), updated by CI
+├── .github/workflows/      # GitHub Actions: version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc

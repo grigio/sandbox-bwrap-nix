@@ -1,0 +1,62 @@
+name: Update version badges
+
+on:
+  push:
+    branches: [master]
+  schedule:
+    # daily at 05:00 UTC; versions change when flake.lock is bumped
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-badges
+  cancel-in-progress: true
+
+jobs:
+  badges:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Extract opencode and jcode versions
+        run: |
+          set -euo pipefail
+          mkdir -p badges
+          opencode_version="$(nix shell --inputs-from . 'nixpkgs#opencode' -c opencode --version | tail -n 1)"
+          jcode_version="$(nix shell --inputs-from . 'jcode#default' -c jcode --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
+          test -n "$opencode_version"
+          test -n "$jcode_version"
+          cat > badges/opencode.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "opencode",
+            "message": "$opencode_version",
+            "color": "blue"
+          }
+          EOF
+          cat > badges/jcode.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "jcode",
+            "message": "$jcode_version",
+            "color": "green"
+          }
+          EOF
+          echo "opencode=$opencode_version jcode=$jcode_version"
+
+      - name: Commit badge updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add badges/opencode.json badges/jcode.json
+          if git diff --cached --quiet; then
+            echo "Badges unchanged, nothing to commit"
+          else
+            git commit -m "badges: update opencode/jcode versions"
+            git push
+          fi
