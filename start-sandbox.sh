@@ -64,11 +64,13 @@ bwrap \
   --dev-bind /dev/random /dev/random \
   --dev-bind /dev/urandom /dev/urandom \
   --dev-bind /dev/tty /dev/tty \
+  --dev-bind /dev/ptmx /dev/ptmx \
   --symlink /proc/self/fd /dev/fd \
   --symlink /proc/self/fd/0 /dev/stdin \
   --symlink /proc/self/fd/1 /dev/stdout \
   --symlink /proc/self/fd/2 /dev/stderr \
   --tmpfs /dev/shm \
+  --tmpfs /dev/pts \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
