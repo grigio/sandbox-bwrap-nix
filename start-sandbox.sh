@@ -29,23 +29,26 @@ BASH_PATH=/bin/bash
 # On NixOS /etc/ssl/certs/ca-certificates.crt is a symlink chain into /nix/store
 SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/etc/ssl/certs/ca-certificates.crt")
 
-# Build /dev explicitly: a devtmpfs (--dev) can't populate device nodes when
-# unprivileged, so bind the essential nodes and symlink the rest.
+# Let bwrap build /dev itself (--dev): it mounts a fresh tmpfs, binds the
+# essential device nodes, mounts a private devpts instance, and points
+# /dev/ptmx at it. Doing the devpts mount as a manual `mount` *inside* the
+# sandbox fails on CI: bwrap runs unprivileged there and uses a user namespace
+# where the process is not root (no CAP_SYS_ADMIN), so the mount dies with
+# "must be superuser to use mount". bwrap performs --dev setup while it still
+# holds CAP_SYS_ADMIN inside the user namespace, so it works unprivileged.
 #
-# /dev/ptmx cannot be a single-file bind: the kernel's path_connected() check
-# treats a file bind as "disconnected" from its parent directory, so ptmx_open()
-# fails to find a devpts instance (ENOENT) and nix develop dies with "opening
-# pseudoterminal master: No such file or directory". Instead the wrapper below
-# mounts a fresh devpts instance (CAP_SYS_ADMIN) and points /dev/ptmx at it
-# before nix starts (nix allocates its pty before the shellHook runs, so this
-# can't live in the flake shellHook).
+# /dev/ptmx must point at the private devpts (pts/ptmx): the kernel's
+# path_connected() check treats a plain bind of /dev/ptmx as disconnected from
+# its parent dir, so ptmx_open() fails to find the devpts instance (ENOENT) and
+# nix develop dies with "opening pseudoterminal master: No such file or
+# directory". nix allocates its pty before the shellHook runs, so this cannot
+# live in the flake shellHook; the wrapper below runs nix under script(1).
 bwrap \
   --clearenv \
   --share-net \
   --unshare-pid \
   --die-with-parent \
   --unshare-uts \
-  --cap-add CAP_SYS_ADMIN \
   --bind /nix/store /nix/store \
   --bind /nix/var/nix /nix/var/nix \
   --tmpfs /nix/var/nix/builds \
@@ -67,17 +70,7 @@ bwrap \
   $( [ -d "$HOME/.config/opencode/skills" ] && echo "--bind $HOME/.config/opencode/skills $SCRIPT_DIR/sandbox-home/.config/opencode/skills" || echo "--tmpfs $SCRIPT_DIR/sandbox-home/.config/opencode/skills" ) \
   --tmpfs /tmp \
   --proc /proc \
-  --tmpfs /dev \
-  --dev-bind /dev/null /dev/null \
-  --dev-bind /dev/zero /dev/zero \
-  --dev-bind /dev/full /dev/full \
-  --dev-bind /dev/random /dev/random \
-  --dev-bind /dev/urandom /dev/urandom \
-  --dev-bind /dev/tty /dev/tty \
-  --symlink /proc/self/fd /dev/fd \
-  --symlink /proc/self/fd/0 /dev/stdin \
-  --symlink /proc/self/fd/1 /dev/stdout \
-  --symlink /proc/self/fd/2 /dev/stderr \
+  --dev /dev \
   --tmpfs /dev/shm \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
@@ -86,15 +79,10 @@ bwrap \
   --chdir "$PWD" \
   /bin/bash -c '
     set -e
-    # Fresh devpts instance: isolated pty numbering and a usable ptmx node
-    # (the host ptmx is mode 000; a single-file bind of /dev/ptmx breaks
-    # devpts discovery on newer kernels, see path_connected() in fs/namei.c).
-    mkdir -p /dev/pts
-    mount -t devpts -o newinstance,ptmxmode=0666,mode=0620,uid=$(id -u),gid=$(id -g) devpts /dev/pts
-    ln -s pts/ptmx /dev/ptmx
-    # Run nix under script(1) so the dev shell gets a pty from OUR devpts
-    # (otherwise nix allocates one itself, and the outer terminal, which
-    # belongs to the host devpts instance, would not resolve via ttyname).
+    # Run nix under script(1) so the dev shell gets a pty from the private
+    # devpts that bwrap mounted at /dev/pts (--dev). Otherwise nix allocates
+    # one itself, and the outer terminal, which belongs to the host devpts
+    # instance, would not resolve via ttyname().
     cmd=$(printf "%q " "$@")
     exec script -qec "$cmd" /dev/null
   ' _ "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"

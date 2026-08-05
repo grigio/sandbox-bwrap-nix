@@ -98,7 +98,7 @@ The sandbox is a blast-radius reduction for convenient everyday use, not a hard 
 | Processes | `--unshare-pid` + fresh `/proc` | Host processes are invisible; they can't be inspected or signalled |
 | Hostname | `--unshare-uts` | Private hostname namespace |
 | `/tmp`, `/dev/shm` | tmpfs | Private scratch space |
-| `/dev` | tmpfs + a few bound device nodes | Only `null/zero/full/random/urandom/tty` plus a private devpts instance. No block devices, no host ptys |
+| `/dev` | tmpfs dev setup via `--dev` | Only `null/zero/full/random/urandom/tty` bound from host plus a private devpts instance (`/dev/ptmx` → `pts/ptmx`). No block devices, no host ptys |
 | Users | Synthetic `/etc/passwd`, `/etc/group` | Only the current user exists (as `nixuser`); host accounts are absent |
 | Nix build dirs | `/nix/var/nix/builds` tmpfs | Build artifacts in that path never touch the host |
 
@@ -113,7 +113,7 @@ The sandbox is a blast-radius reduction for convenient everyday use, not a hard 
 | Current directory | `--bind "$PWD" "$PWD"` | Everything in the directory you launched from is shared both ways |
 | `sandbox-home/` | Real directory on the host | Files persist and are visible from the host |
 | OpenCode skills | `~/.config/opencode/skills` bound in | When present on the host, the sandbox reads and writes them |
-| Kernel & capabilities | Shared kernel, `--cap-add CAP_SYS_ADMIN` | The sandbox can mount namespaced filesystems (needed for the devpts pty setup), but only inside its own namespaces; it cannot touch host sysctls or devices |
+| Kernel & capabilities | Shared kernel; `bwrap` runs unprivileged in a user namespace | `--dev` setup (incl. the private devpts mount) is done by bwrap itself while it holds CAP_SYS_ADMIN inside the user namespace, so it works without setuid/setcap bwrap; it cannot touch host sysctls or devices |
 
 **Bottom line:** this is containment for everyday use — run AI agents here so they can't read your SSH keys or delete files outside the shared paths — not a sandbox for running untrusted or adversarial code. Anything inside it has network access and reach into the nix store.
 
