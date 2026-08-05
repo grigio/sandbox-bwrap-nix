@@ -68,20 +68,54 @@ demo
 
 | Mount | Type | Purpose |
 |-------|------|---------|
-| `/nix/store`, `/nix/var/nix` | bind (ro) | Nix store access |
+| `/nix/store`, `/nix/var/nix` | bind (rw) | Nix store access (shared with the host) |
 | `/nix/var/nix/builds` | tmpfs | Isolate builds |
 | `/bin/sh`, `/bin/bash`, `/usr/bin/nix` | bind (ro) | Essential binaries |
-| `/usr/lib`, `/usr/lib64` | bind | Shared libraries |
+| `/usr/lib`, `/usr/lib64` | bind (ro) | Shared libraries |
 | `/etc/resolv.conf`, `/etc/hosts`, `/etc/nsswitch.conf` | bind (ro) | DNS / name resolution |
 | SSL certs | bind (ro) | HTTPS support |
 | `sandbox-home/` | bind | Isolated home dir |
 | `/tmp` | tmpfs | Temporary files |
 | `/proc` | procfs | Process access |
-| `/dev` | tmpfs + device binds + fresh devpts | Only `null/zero/full/random/urandom/tty` bound from host; pty support via a fresh devpts instance mounted inside (`ptmxmode=666`, `/dev/ptmx` → `pts/ptmx`), with the dev shell run under `script(1)` so it gets a pty from that instance |
+| `/dev` | tmpfs + device binds + fresh devpts | Only `null/zero/full/random/urandom/tty` bound from host; pty support via a fresh devpts instance mounted inside (`/dev/ptmx` → `pts/ptmx`) |
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
 Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, gnumake, micro, less**, and bash completion.
+
+## What the sandbox isolates (and what it doesn't)
+
+The sandbox is a blast-radius reduction for convenient everyday use, not a hard security boundary. It keeps AI agents and experiments away from your host filesystem, processes, and home, while deliberately sharing the things needed to be useful: the network, the nix store, and the current directory.
+
+### Isolated
+
+| Area | Mechanism | Effect |
+|-------|-----------|--------|
+| Filesystem | Mount namespace with explicit binds | Only the paths in the table above are visible. `$HOME`, `/etc`, `/root`, host mounts: all invisible |
+| Writable surface | rw binds limited to `$PWD`, the repo dir, `sandbox-home/`, `/nix/var/nix` | Outside the explicitly bound paths there is nothing to delete or modify |
+| Home directory | `--setenv HOME "$SCRIPT_DIR/sandbox-home"` | The real `$HOME` is not bound; the sandbox gets its own home |
+| Environment | `--clearenv` | No host variables leak; only `HOME`, `PATH`, `TMPDIR`, `TERM` are set |
+| Processes | `--unshare-pid` + fresh `/proc` | Host processes are invisible; they can't be inspected or signalled |
+| Hostname | `--unshare-uts` | Private hostname namespace |
+| `/tmp`, `/dev/shm` | tmpfs | Private scratch space |
+| `/dev` | tmpfs + a few bound device nodes | Only `null/zero/full/random/urandom/tty` plus a private devpts instance. No block devices, no host ptys |
+| Users | Synthetic `/etc/passwd`, `/etc/group` | Only the current user exists (as `nixuser`); host accounts are absent |
+| Nix build dirs | `/nix/var/nix/builds` tmpfs | Build artifacts in that path never touch the host |
+
+### Not isolated (by design)
+
+| Area | Mechanism | Consequence |
+|-------|-----------|-------------|
+| Network | `--share-net` | Same host IP; LAN, internet, and localhost are all reachable. No egress restrictions |
+| User identity | Same uid/gid as the host user | Files in shared paths are owned by you; host permission checks apply |
+| Nix store | `/nix/store` and `/nix/var/nix` bound read-write | The store is the host store. Tools can read and (where permissions allow) write it; a hostile process could poison store paths |
+| Nix daemon | Socket at `/nix/var/nix/daemon-socket` | `nix build` through the daemon executes on the host, outside the sandbox |
+| Current directory | `--bind "$PWD" "$PWD"` | Everything in the directory you launched from is shared both ways |
+| `sandbox-home/` | Real directory on the host | Files persist and are visible from the host |
+| OpenCode skills | `~/.config/opencode/skills` bound in | When present on the host, the sandbox reads and writes them |
+| Kernel & capabilities | Shared kernel, `--cap-add CAP_SYS_ADMIN` | The sandbox can mount namespaced filesystems (needed for the devpts pty setup), but only inside its own namespaces; it cannot touch host sysctls or devices |
+
+**Bottom line:** this is containment for everyday use — run AI agents here so they can't read your SSH keys or delete files outside the shared paths — not a sandbox for running untrusted or adversarial code. Anything inside it has network access and reach into the nix store.
 
 ## Why bwrap instead of plain `nix develop`
 
