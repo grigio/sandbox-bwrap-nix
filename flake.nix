@@ -27,9 +27,23 @@
       pkgsFor = system: nixpkgs.legacyPackages.${system};
     in
     {
-      checks = forAllSystems (system: {
-        default = self.devShells.${system}.default;
-      });
+      # `nix fmt` formats flake.nix with nixpkgs-fmt
+      formatter = forAllSystems (system: (pkgsFor system).nixpkgs-fmt);
+
+      checks = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          default = self.devShells.${system}.default;
+          # Formatting gate: `nix flake check` (and CI) fail if flake.nix is
+          # not nixpkgs-fmt clean. `nix fmt` normalizes it locally.
+          fmt = pkgs.runCommand "check-nixpkgs-fmt" { src = self; } ''
+            set -e
+            ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt --check $src/flake.nix
+            touch $out
+          '';
+        });
 
       devShells = forAllSystems (system:
         let

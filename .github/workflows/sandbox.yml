@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: DeterminateSystems/nix-installer-action@v22
 
@@ -23,9 +23,6 @@ jobs:
 
       - name: Check flake evaluation
         run: nix flake check
-
-      - name: Check formatting
-        run: nix run nixpkgs#nixpkgs-fmt -- --check flake.nix
 
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
