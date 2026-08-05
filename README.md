@@ -77,7 +77,7 @@ demo
 | `sandbox-home/` | bind | Isolated home dir |
 | `/tmp` | tmpfs | Temporary files |
 | `/proc` | procfs | Process access |
-| `/dev` | tmpfs + device binds | Device access (`/dev/null`, `/dev/zero`, `/dev/urandom`, ... bound from host) |
+| `/dev` | tmpfs + device binds + fresh devpts | Only `null/zero/full/random/urandom/tty` bound from host; pty support via a fresh devpts instance mounted inside (`ptmxmode=666`, `/dev/ptmx` → `pts/ptmx`), with the dev shell run under `script(1)` so it gets a pty from that instance |
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 

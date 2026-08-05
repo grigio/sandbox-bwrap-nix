@@ -29,20 +29,30 @@ BASH_PATH=/bin/bash
 # On NixOS /etc/ssl/certs/ca-certificates.crt is a symlink chain into /nix/store
 SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/etc/ssl/certs/ca-certificates.crt")
 
-# A devtmpfs (--dev) often can't populate device nodes when unprivileged,
-# so build /dev explicitly: bind the essential nodes and symlink the rest.
+# Build /dev explicitly: a devtmpfs (--dev) can't populate device nodes when
+# unprivileged, so bind the essential nodes and symlink the rest.
+#
+# /dev/ptmx cannot be a single-file bind: the kernel's path_connected() check
+# treats a file bind as "disconnected" from its parent directory, so ptmx_open()
+# fails to find a devpts instance (ENOENT) and nix develop dies with "opening
+# pseudoterminal master: No such file or directory". Instead the wrapper below
+# mounts a fresh devpts instance (CAP_SYS_ADMIN) and points /dev/ptmx at it
+# before nix starts (nix allocates its pty before the shellHook runs, so this
+# can't live in the flake shellHook).
 bwrap \
   --clearenv \
   --share-net \
   --unshare-pid \
   --die-with-parent \
   --unshare-uts \
+  --cap-add CAP_SYS_ADMIN \
   --bind /nix/store /nix/store \
   --bind /nix/var/nix /nix/var/nix \
   --tmpfs /nix/var/nix/builds \
   --ro-bind /bin/sh /bin/sh \
   --ro-bind "$BASH_PATH" /bin/bash \
   --ro-bind "$NIX_BIN_REAL" /usr/bin/nix \
+  $( [ -d /usr/bin ] && echo "--ro-bind /usr/bin /usr/bin" ) \
   $( [ -d /usr/lib ] && echo "--ro-bind /usr/lib /usr/lib" ) \
   $( [ -d /usr/lib64 ] && echo "--ro-bind /usr/lib64 /usr/lib64 --symlink /usr/lib64 /lib64" ) \
   --ro-bind /etc/resolv.conf /etc/resolv.conf \
@@ -64,16 +74,27 @@ bwrap \
   --dev-bind /dev/random /dev/random \
   --dev-bind /dev/urandom /dev/urandom \
   --dev-bind /dev/tty /dev/tty \
-  --dev-bind /dev/ptmx /dev/ptmx \
   --symlink /proc/self/fd /dev/fd \
   --symlink /proc/self/fd/0 /dev/stdin \
   --symlink /proc/self/fd/1 /dev/stdout \
   --symlink /proc/self/fd/2 /dev/stderr \
   --tmpfs /dev/shm \
-  --tmpfs /dev/pts \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
   --setenv TERM "${TERM:-xterm-256color}" \
   --chdir "$PWD" \
-  "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
+  /bin/bash -c '
+    set -e
+    # Fresh devpts instance: isolated pty numbering and a usable ptmx node
+    # (the host ptmx is mode 000; a single-file bind of /dev/ptmx breaks
+    # devpts discovery on newer kernels, see path_connected() in fs/namei.c).
+    mkdir -p /dev/pts
+    mount -t devpts -o newinstance,ptmxmode=0666,mode=0620,uid=$(id -u),gid=$(id -g) devpts /dev/pts
+    ln -s pts/ptmx /dev/ptmx
+    # Run nix under script(1) so the dev shell gets a pty from OUR devpts
+    # (otherwise nix allocates one itself, and the outer terminal, which
+    # belongs to the host devpts instance, would not resolve via ttyname).
+    cmd=$(printf "%q " "$@")
+    exec script -qec "$cmd" /dev/null
+  ' _ "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
