@@ -32,5 +32,8 @@ jobs:
           sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
           sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
 
-      - name: Run sandbox test
+      - name: Run sandbox test (opencode)
         run: ./start-sandbox.sh opencode --version
+
+      - name: Run sandbox test (jcode)
+        run: ./start-sandbox.sh jcode --version

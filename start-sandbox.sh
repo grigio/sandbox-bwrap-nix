@@ -85,4 +85,4 @@ bwrap \
     # instance, would not resolve via ttyname().
     cmd=$(printf "%q " "$@")
     exec script -qec "$cmd" /dev/null
-  ' _ "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop "$SCRIPT_DIR" -c "${@:-bash}"
+  ' _ "$NIX_BIN_REAL" --extra-experimental-features "nix-command flakes" develop --accept-flake-config "$SCRIPT_DIR" -c "${@:-bash}"
