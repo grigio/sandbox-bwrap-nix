@@ -72,6 +72,9 @@
               less
               fd
               ripgrep
+              btop
+              # clear and reset terminal commands
+              ncurses
               cargo
               yt-dlp
               opencode

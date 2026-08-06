@@ -81,7 +81,7 @@ demo
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
-Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, gnumake, micro, less**, and bash completion.
+Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
 
 ## What the sandbox isolates (and what it doesn't)
 
