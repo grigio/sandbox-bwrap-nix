@@ -25,6 +25,43 @@
       # the same per-system evaluation, unlike `import nixpkgs` which evaluates
       # the whole tree anew on every call.
       pkgsFor = system: nixpkgs.legacyPackages.${system};
+
+      # Reasonix CLI is shipped as a statically linked Go binary in a flat
+      # tarball per platform on GitHub Releases, so packaging it is a pure
+      # download + install. No build steps and no runtime deps.
+      reasonixFor = system:
+        let
+          pkgs = pkgsFor system;
+          version = "1.20.0";
+          arch = { x86_64-linux = "amd64"; aarch64-linux = "arm64"; }.${system};
+          hash = {
+            x86_64-linux = "sha256-eWH1l1zpWjXbptHgGbxM7R9rZ73C2fsMneAsI+kUeVY=";
+            aarch64-linux = "sha256-8SI7+mqp6LTVYQpDBF/A9u2di1Tb+cfdXYAHuNjpqcU=";
+          }.${system};
+        in
+        pkgs.stdenvNoCC.mkDerivation {
+          pname = "reasonix";
+          inherit version;
+          src = pkgs.fetchurl {
+            url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-${arch}.tar.gz";
+            inherit hash;
+          };
+          # The tarball has no wrapping directory, so files land at the top
+          # level of the build dir.
+          sourceRoot = ".";
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 reasonix $out/bin/reasonix
+            runHook postInstall
+          '';
+          meta = with pkgs.lib; {
+            description = "DeepSeek-native AI coding agent for your terminal";
+            homepage = "https://github.com/esengine/DeepSeek-Reasonix";
+            license = licenses.mit;
+            mainProgram = "reasonix";
+            platforms = [ "x86_64-linux" "aarch64-linux" ];
+          };
+        };
     in
     {
       # `nix fmt` formats flake.nix with nixpkgs-fmt
@@ -45,9 +82,16 @@
           '';
         });
 
+      # `nix build .#reasonix`, `nix run .#reasonix`, or `nix profile install`
+      packages = forAllSystems (system: {
+        reasonix = reasonixFor system;
+      });
+
       devShells = forAllSystems (system:
         let
           pkgs = pkgsFor system;
+          # reasonix is packaged by this flake (see `packages`), not nixpkgs
+          reasonix = self.packages.${system}.reasonix;
           # The grigio binary cache only publishes x86_64-linux, so jcode is a
           # pure download there. On other systems it would compile ~1000 crates
           # from source, which is not what this shell is for.
@@ -79,6 +123,7 @@
               yt-dlp
               opencode
               pi-coding-agent
+              reasonix
             ] ++ lib.optionals (system == "x86_64-linux") [ jcode' ]
             ++ [ bash-completion bashInteractive ];
 
