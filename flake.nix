@@ -78,6 +78,7 @@
               cargo
               yt-dlp
               opencode
+              pi-coding-agent
             ] ++ lib.optionals (system == "x86_64-linux") [ jcode' ]
             ++ [ bash-completion bashInteractive ];
 
