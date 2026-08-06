@@ -99,6 +99,7 @@
         in
         {
           default = pkgs.mkShell {
+            shell = pkgs.bashInteractive;
             # These are the packages you always need in the sandbox
             packages = with pkgs; [
               nix
@@ -128,6 +129,7 @@
             ++ [ bash-completion bashInteractive ];
 
             shellHook = ''
+              export SHELL=${pkgs.bashInteractive}/bin/bash
               export NIX_PATH=nixpkgs=${nixpkgs}
               echo "=== sandbox-bwrap-nix development shell ==="
               echo "  nixpkgs: nixpkgs-unstable (${self.inputs.nixpkgs.lastModifiedDate} - ${self.inputs.nixpkgs.shortRev})"
