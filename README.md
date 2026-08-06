@@ -3,6 +3,8 @@
 [![Sandbox CI](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml/badge.svg)](https://github.com/grigio/sandbox-bwrap-nix/actions/workflows/sandbox.yml)
 [![opencode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/opencode.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![jcode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/jcode.json)](https://github.com/grigio/sandbox-bwrap-nix)
+[![pi-coding-agent version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/pi-coding-agent.json)](https://github.com/grigio/sandbox-bwrap-nix)
+[![reasonix version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/reasonix.json)](https://github.com/grigio/sandbox-bwrap-nix)
 
 Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
 
@@ -81,7 +83,7 @@ demo
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
-Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
+Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, pi-coding-agent, reasonix, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
 
 ## What the sandbox isolates (and what it doesn't)
 
@@ -161,7 +163,7 @@ jcode instead of compiling it from source.
 ├── start-sandbox.sh        # Entry point — invokes bwrap
 ├── flake.nix               # Nix flake with dev shell definition
 ├── flake.lock              # Pinned nixpkgs revision
-├── badges/                 # Version badge data (opencode, jcode), updated by CI
+├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix), updated by CI
 ├── .github/workflows/      # GitHub Actions: version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases

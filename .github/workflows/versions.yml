@@ -23,14 +23,18 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@v22
 
-      - name: Extract opencode and jcode versions
+      - name: Extract opencode, jcode, pi-coding-agent and reasonix versions
         run: |
           set -euo pipefail
           mkdir -p badges
           opencode_version="$(nix shell --inputs-from . 'nixpkgs#opencode' -c opencode --version | tail -n 1)"
           jcode_version="$(nix shell --inputs-from . 'jcode#default' -c jcode --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
+          pi_version="$(nix shell --inputs-from . 'nixpkgs#pi-coding-agent' -c pi --version | tail -n 1)"
+          reasonix_version="$(nix shell --inputs-from . '.#reasonix' -c reasonix --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
           test -n "$opencode_version"
           test -n "$jcode_version"
+          test -n "$pi_version"
+          test -n "$reasonix_version"
           cat > badges/opencode.json <<EOF
           {
             "schemaVersion": 1,
@@ -47,16 +51,32 @@ jobs:
             "color": "green"
           }
           EOF
-          echo "opencode=$opencode_version jcode=$jcode_version"
+          cat > badges/pi-coding-agent.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "pi-coding-agent",
+            "message": "$pi_version",
+            "color": "purple"
+          }
+          EOF
+          cat > badges/reasonix.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "reasonix",
+            "message": "$reasonix_version",
+            "color": "orange"
+          }
+          EOF
+          echo "opencode=$opencode_version jcode=$jcode_version pi-coding-agent=$pi_version reasonix=$reasonix_version"
 
       - name: Commit badge updates
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add badges/opencode.json badges/jcode.json
+          git add badges/*.json
           if git diff --cached --quiet; then
             echo "Badges unchanged, nothing to commit"
           else
-            git commit -m "badges: update opencode/jcode versions"
+            git commit -m "badges: update opencode/jcode/pi-coding-agent/reasonix versions"
             git push
           fi
