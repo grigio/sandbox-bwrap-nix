@@ -149,8 +149,8 @@ The cache is configured in two places:
 
 Paths the cache does not have fall back to building from source. The grigio
 cache only publishes **x86_64-linux**, so on that platform jcode is a pure
-download; on other systems (e.g. aarch64-linux) the dev shell simply omits
-jcode instead of compiling it from source.
+download. This flake targets x86_64-linux only: reasonix is published for
+x86-64 (amd64) and CI runs on x86_64 runners.
 
 ## Requirements
 

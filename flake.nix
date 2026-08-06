@@ -19,7 +19,9 @@
 
   outputs = { self, nixpkgs, jcode }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" ];
+      # x86_64-linux only: reasonix and the jcode binary cache are
+      # x86-64 only, and CI runs on x86_64 runners.
+      systems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
       # Reference nixpkgs' own lazily-evaluated package set. All outputs share
       # the same per-system evaluation, unlike `import nixpkgs` which evaluates
@@ -29,22 +31,18 @@
       # Reasonix CLI is shipped as a statically linked Go binary in a flat
       # tarball per platform on GitHub Releases, so packaging it is a pure
       # download + install. No build steps and no runtime deps.
+      # Only the x86-64 (amd64) build is used: the flake targets x86_64-linux.
       reasonixFor = system:
         let
           pkgs = pkgsFor system;
           version = "1.20.0";
-          arch = { x86_64-linux = "amd64"; aarch64-linux = "arm64"; }.${system};
-          hash = {
-            x86_64-linux = "sha256-eWH1l1zpWjXbptHgGbxM7R9rZ73C2fsMneAsI+kUeVY=";
-            aarch64-linux = "sha256-8SI7+mqp6LTVYQpDBF/A9u2di1Tb+cfdXYAHuNjpqcU=";
-          }.${system};
         in
         pkgs.stdenvNoCC.mkDerivation {
           pname = "reasonix";
           inherit version;
           src = pkgs.fetchurl {
-            url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-${arch}.tar.gz";
-            inherit hash;
+            url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
+            hash = "sha256-eWH1l1zpWjXbptHgGbxM7R9rZ73C2fsMneAsI+kUeVY=";
           };
           # The tarball has no wrapping directory, so files land at the top
           # level of the build dir.
@@ -59,7 +57,7 @@
             homepage = "https://github.com/esengine/DeepSeek-Reasonix";
             license = licenses.mit;
             mainProgram = "reasonix";
-            platforms = [ "x86_64-linux" "aarch64-linux" ];
+            platforms = [ "x86_64-linux" ];
           };
         };
     in
@@ -92,9 +90,8 @@
           pkgs = pkgsFor system;
           # reasonix is packaged by this flake (see `packages`), not nixpkgs
           reasonix = self.packages.${system}.reasonix;
-          # The grigio binary cache only publishes x86_64-linux, so jcode is a
-          # pure download there. On other systems it would compile ~1000 crates
-          # from source, which is not what this shell is for.
+          # jcode comes prebuilt from the grigio binary cache; this flake only
+          # targets x86_64-linux, where the cache makes it a pure download.
           jcode' = jcode.packages.${system}.default or null;
         in
         {
@@ -125,7 +122,7 @@
               opencode
               pi-coding-agent
               reasonix
-            ] ++ lib.optionals (system == "x86_64-linux") [ jcode' ]
+            ] ++ lib.optionals (jcode' != null) [ jcode' ]
             ++ [ bash-completion bashInteractive ];
 
             shellHook = ''
