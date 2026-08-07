@@ -114,6 +114,12 @@
               less
               fd
               ripgrep
+              # process inspection for debugging inside the sandbox
+              procps
+              # binary inspection/unpacking (e.g. Firefox extension zips)
+              unzip
+              # classic `which`; some build scripts and agents still rely on it
+              which
               btop
               # clear and reset terminal commands
               ncurses
@@ -122,17 +128,50 @@
               opencode
               pi-coding-agent
               reasonix
+
+              # Browser support: Firefox's GUI needs XKB keyboard rules and
+              # fontconfig config, which `--clearenv` in start-sandbox.sh strips
+              # out of the host environment. Without these, Firefox crashes on
+              # launch with "Failed to create XKB keymap", which breaks the
+              # jcode browser tool's Firefox agent bridge.
+              xkeyboard-config
+              fontconfig
+
+              # GTK GUI rendering: GTK/gdk-pixbuf also needs a shared-mime-info
+              # database and an icon theme. start-sandbox.sh binds the host's
+              # /usr/share (mime DB + icon themes + fonts + locale), but on
+              # minimal/NixOS hosts that tree may not exist, so we ship our own
+              # copies from the nix store and expose them through XDG_DATA_DIRS.
+              # gdk-pixbuf is listed explicitly because the shellHook references
+              # ${pkgs.gdk-pixbuf}/share for its pixbuf loaders.
+              shared-mime-info
+              hicolor-icon-theme
+              gdk-pixbuf
             ] ++ lib.optionals (jcode' != null) [ jcode' ]
             ++ [ bash-completion bashInteractive ];
 
             shellHook = ''
               export SHELL=${pkgs.bashInteractive}/bin/bash
               export NIX_PATH=nixpkgs=${nixpkgs}
+              # Point GTK/xkbcommon at the XKB data so Firefox can build its
+              # keymap in the sandbox (see packages list above).
+              export XKB_CONFIG_ROOT=${pkgs.xkeyboard-config}/share/X11/xkb
+              export FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf
+              export FONTCONFIG_PATH=${pkgs.fontconfig.out}/etc/fonts
+              # Add nix-provided icon theme + shared-mime-info, then the host's
+              # /usr/share (bound by start-sandbox.sh). This fixes "Could not
+              # load a pixbuf ... pixbuf loaders or the mime database could not
+              # be found" from GTK under --clearenv.
+              export XDG_DATA_DIRS=${pkgs.hicolor-icon-theme}/share:${pkgs.shared-mime-info}/share:${pkgs.gdk-pixbuf}/share:/usr/share
               echo "=== sandbox-bwrap-nix development shell ==="
               echo "  nixpkgs: nixpkgs-unstable (${self.inputs.nixpkgs.lastModifiedDate} - ${self.inputs.nixpkgs.shortRev})"
+              echo "  XKB_CONFIG_ROOT=$XKB_CONFIG_ROOT"
             '';
 
             SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+            # Some clients (curl, node, git) read the bundle from this var
+            # rather than SSL_CERT_FILE; set both for robustness.
+            CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
           };
         });
     };

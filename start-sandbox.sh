@@ -16,6 +16,12 @@ HOST_USER=$(whoami)
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 
+# X11 authentication token. --clearenv strips XAUTHORITY, so GUI apps (e.g. the
+# browser tool's Firefox) opening the shared display would be rejected on hosts
+# whose X server uses auth. Pass it through only when an authority file exists.
+XAUTH="${XAUTHORITY:-$HOME/.Xauthority}"
+[ -f "$XAUTH" ] && XAUTH_PRESENT=1 || XAUTH_PRESENT=0
+
 grep -v "^${HOST_USER}:" /etc/passwd > "$SANDBOX_PASSWD"
 echo "nixuser:x:${HOST_UID}:${HOST_GID}:sandbox user:${SCRIPT_DIR}/sandbox-home:/bin/bash" >> "$SANDBOX_PASSWD"
 grep -v "^${HOST_USER}:" /etc/group > "$SANDBOX_GROUP"
@@ -43,6 +49,12 @@ SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/
 # nix develop dies with "opening pseudoterminal master: No such file or
 # directory". nix allocates its pty before the shellHook runs, so this cannot
 # live in the flake shellHook; the wrapper below runs nix under script(1).
+#
+# NOTE on browsers: the sandbox is not self-contained for the browser tool. The
+# flake deliberately does NOT ship a nixpkgs Firefox (nixpkgs-unstable ~153 is
+# currently incompatible with the jcode browser bridge; host Firefox ~136
+# works), so the browser tool relies on a host browser landed in the chroot from
+# the read-only /usr/bin bind below. Keep that bind, or the tool cannot connect.
 bwrap \
   --clearenv \
   --share-net \
@@ -63,6 +75,11 @@ bwrap \
   --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
   --ro-bind "$SANDBOX_PASSWD" /etc/passwd \
   --ro-bind "$SANDBOX_GROUP" /etc/group \
+  $( [ -d /usr/share ] && echo "--ro-bind-try /usr/share /usr/share" || true ) \
+  --ro-bind-try /etc/fonts /etc/fonts \
+  --ro-bind-try /etc/ld.so.cache /etc/ld.so.cache \
+  --ro-bind-try /etc/gtk-3.0 /etc/gtk-3.0 \
+  --ro-bind-try /etc/alternatives /etc/alternatives \
   --ro-bind "$SSL_CERT" /etc/ssl/certs/ca-certificates.crt \
   --bind "$PWD" "$PWD" \
   --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
@@ -72,6 +89,19 @@ bwrap \
   --proc /proc \
   --dev /dev \
   --tmpfs /dev/shm \
+  --ro-bind-try /sys /sys \
+  --ro-bind-try /etc/machine-id /etc/machine-id \
+  --ro-bind-try /var/lib/dbus/machine-id /var/lib/dbus/machine-id \
+  --ro-bind-try /run/dbus/system_bus_socket /run/dbus/system_bus_socket \
+  $( [ -d /dev/dri ] && echo "--dev-bind /dev/dri /dev/dri" ) \
+  $( [ -n "${DISPLAY:-}" ] && echo "--ro-bind-try /tmp/.X11-unix /tmp/.X11-unix --setenv DISPLAY ${DISPLAY}" ) \
+  $( [ "$XAUTH_PRESENT" = 1 ] && echo "--ro-bind-try $XAUTH $XAUTH --setenv XAUTHORITY $XAUTH" ) \
+  $( [ -n "${XDG_RUNTIME_DIR:-}" ] && echo "--bind ${XDG_RUNTIME_DIR} ${XDG_RUNTIME_DIR} --setenv XDG_RUNTIME_DIR ${XDG_RUNTIME_DIR}" ) \
+  $( [ -n "${WAYLAND_DISPLAY:-}" ] && echo "--setenv WAYLAND_DISPLAY ${WAYLAND_DISPLAY}" ) \
+  \
+  --ro-bind-try /etc/localtime /etc/localtime \
+  --ro-bind-try /etc/hostname /etc/hostname \
+  \
   --setenv HOME "$SCRIPT_DIR/sandbox-home" \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
