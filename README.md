@@ -164,7 +164,9 @@ x86-64 (amd64) and CI runs on x86_64 runners.
 ├── flake.nix               # Nix flake with dev shell definition
 ├── flake.lock              # Pinned nixpkgs revision
 ├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix), updated by CI
-├── .github/workflows/      # GitHub Actions: version badge updater
+├── scripts/
+│   └── update-badges.sh    # Regenerates badges/ from the versions in flake.lock (used by CI, runnable locally)
+├── .github/workflows/      # GitHub Actions: daily flake.lock update + version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc
@@ -194,13 +196,21 @@ Edit [`flake.nix`](flake.nix) and add packages to the `mkShell` `packages` list,
 nix flake update    # update nixpkgs (optional)
 ```
 
-## Updating nixpkgs
+## Updating nixpkgs and jcode
 
 ```bash
 nix flake update
 ```
 
-This updates `flake.lock` to the latest nixpkgs unstable commit.
+This updates `flake.lock` to the latest nixpkgs unstable commit and bumps the
+`jcode` input (github:grigio/jcode, which provides the prebuilt jcode binary)
+to the newest version.
+
+CI also runs this automatically: the **daily flake.lock update** workflow runs
+`nix flake update` every day, validates with `nix flake check --all-systems`,
+smoke-tests the sandbox, regenerates the version badges from the new lock, and
+merges everything through a PR. The badge workflow additionally refreshes the
+badges on every push to `master`, so they always match the locked versions.
 
 ## License
 

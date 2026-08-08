@@ -1,0 +1,6 @@
+# actionlint config (https://github.com/rhysd/actionlint#actionlintyaml)
+# ubuntu-26.04 is a GitHub-hosted runner label newer than actionlint's
+# built-in list; declare it so `actionlint` reports only real problems.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04

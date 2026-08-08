@@ -4,7 +4,8 @@ on:
   push:
     branches: [master]
   schedule:
-    # daily at 05:00 UTC; versions change when flake.lock is bumped
+    # daily at 05:00 UTC; versions change when flake.lock is bumped or when
+    # pins in flake.nix move (e.g. reasonix)
     - cron: "0 5 * * *"
   workflow_dispatch:
 
@@ -27,51 +28,8 @@ jobs:
             extra-substituters = https://grigio.github.io/jcode
             extra-trusted-public-keys = grigio-jcode:WdqguwKdwOilH+ITvLO98qZy9x5HQ8Cl0xltHtSsUvQ=
 
-      - name: Extract opencode, jcode, pi-coding-agent and reasonix versions
-        run: |
-          set -euo pipefail
-          mkdir -p badges
-          opencode_version="$(nix shell --inputs-from . 'nixpkgs#opencode' -c opencode --version | tail -n 1)"
-          jcode_version="$(nix shell --inputs-from . 'jcode#default' -c jcode --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
-          pi_version="$(nix shell --inputs-from . 'nixpkgs#pi-coding-agent' -c pi --version | tail -n 1)"
-          reasonix_version="$(nix shell --inputs-from . '.#reasonix' -c reasonix --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
-          test -n "$opencode_version"
-          test -n "$jcode_version"
-          test -n "$pi_version"
-          test -n "$reasonix_version"
-          cat > badges/opencode.json <<EOF
-          {
-            "schemaVersion": 1,
-            "label": "opencode",
-            "message": "$opencode_version",
-            "color": "blue"
-          }
-          EOF
-          cat > badges/jcode.json <<EOF
-          {
-            "schemaVersion": 1,
-            "label": "jcode",
-            "message": "$jcode_version",
-            "color": "green"
-          }
-          EOF
-          cat > badges/pi-coding-agent.json <<EOF
-          {
-            "schemaVersion": 1,
-            "label": "pi-coding-agent",
-            "message": "$pi_version",
-            "color": "purple"
-          }
-          EOF
-          cat > badges/reasonix.json <<EOF
-          {
-            "schemaVersion": 1,
-            "label": "reasonix",
-            "message": "$reasonix_version",
-            "color": "orange"
-          }
-          EOF
-          echo "opencode=$opencode_version jcode=$jcode_version pi-coding-agent=$pi_version reasonix=$reasonix_version"
+      - name: Regenerate opencode, jcode, pi-coding-agent and reasonix badges
+        run: bash scripts/update-badges.sh
 
       - name: Commit badge updates
         run: |
