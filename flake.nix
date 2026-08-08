@@ -32,17 +32,20 @@
       # tarball per platform on GitHub Releases, so packaging it is a pure
       # download + install. No build steps and no runtime deps.
       # Only the x86-64 (amd64) build is used: the flake targets x86_64-linux.
+      # The version/hash pins below are kept current by
+      # scripts/update-reasonix.sh, run every two hours by
+      # .github/workflows/update-reasonix.yml.
       reasonixFor = system:
         let
           pkgs = pkgsFor system;
-          version = "1.20.0";
+          version = "1.21.3";
         in
         pkgs.stdenvNoCC.mkDerivation {
           pname = "reasonix";
           inherit version;
           src = pkgs.fetchurl {
             url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-            hash = "sha256-eWH1l1zpWjXbptHgGbxM7R9rZ73C2fsMneAsI+kUeVY=";
+            hash = "sha256-yxKcPgXYqrOSb+SEnmjco5y+dEBHhYQnKml7Vh2N4EE=";
           };
           # The tarball has no wrapping directory, so files land at the top
           # level of the build dir.

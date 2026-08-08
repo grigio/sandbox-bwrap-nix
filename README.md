@@ -165,8 +165,9 @@ x86-64 (amd64) and CI runs on x86_64 runners.
 ├── flake.lock              # Pinned nixpkgs revision
 ├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix), updated by CI
 ├── scripts/
-│   └── update-badges.sh    # Regenerates badges/ from the versions in flake.lock (used by CI, runnable locally)
-├── .github/workflows/      # GitHub Actions: daily flake.lock update + version badge updater
+│   ├── update-badges.sh      # Regenerates badges/ from the versions pinned in the flake (used by CI, runnable locally)
+│   └── update-reasonix.sh    # Bumps the reasonix version/hash pins in flake.nix to the latest GitHub CLI release (used by CI, runnable locally)
+├── .github/workflows/      # GitHub Actions: flake.lock updater, reasonix pin updater, version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc
@@ -211,6 +212,16 @@ CI also runs this automatically: the **daily flake.lock update** workflow runs
 smoke-tests the sandbox, regenerates the version badges from the new lock, and
 merges everything through a PR. The badge workflow additionally refreshes the
 badges on every push to `master`, so they always match the locked versions.
+
+The pinned reasonix version in `flake.nix` is updated the same way: every two
+hours the **reasonix updater** workflow runs
+[`scripts/update-reasonix.sh`](scripts/update-reasonix.sh), which queries the
+latest `vX.Y.Z` CLI release on GitHub (the `desktop-v*` releases are a separate
+desktop-app track and are skipped), rewrites the version/hash pins from the
+release's `SHA256SUMS`, validates with `nix build .#reasonix`, and auto-merges
+a PR after smoke-testing the sandbox and refreshing the badges. To bump
+reasonix manually, just edit the `version` and `hash` lines in `flake.nix` or
+run `bash scripts/update-reasonix.sh`.
 
 ## License
 
