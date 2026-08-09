@@ -38,14 +38,14 @@
       reasonixFor = system:
         let
           pkgs = pkgsFor system;
-          version = "1.21.3";
+          version = "1.21.4";
         in
         pkgs.stdenvNoCC.mkDerivation {
           pname = "reasonix";
           inherit version;
           src = pkgs.fetchurl {
             url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-            hash = "sha256-yxKcPgXYqrOSb+SEnmjco5y+dEBHhYQnKml7Vh2N4EE=";
+            hash = "sha256-MQ6AvHsdzQ7/jEKLPaxKJyQPXqK9ZFXCj3R5vo8W7aA=";
           };
           # The tarball has no wrapping directory, so files land at the top
           # level of the build dir.
