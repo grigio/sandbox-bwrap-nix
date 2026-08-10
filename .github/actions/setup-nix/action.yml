@@ -1,0 +1,18 @@
+name: Setup Nix with the jcode binary cache
+description: |
+  Install Nix (DeterminateSystems/nix-installer-action) and configure the
+  grigio jcode binary cache (https://grigio.github.io/jcode) so jcode and its
+  crane dependency layer are downloaded instead of compiled.
+
+  This composite action is the single source of truth for the cache config in
+  the workflows. Keep it in sync with the `nixConfig` in flake.nix and
+  sandbox-home/.config/nix/nix.conf when the cache changes.
+
+runs:
+  using: composite
+  steps:
+    - uses: DeterminateSystems/nix-installer-action@v22
+      with:
+        extra-conf: |
+          extra-substituters = https://grigio.github.io/jcode
+          extra-trusted-public-keys = grigio-jcode:WdqguwKdwOilH+ITvLO98qZy9x5HQ8Cl0xltHtSsUvQ=

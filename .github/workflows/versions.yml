@@ -22,11 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: DeterminateSystems/nix-installer-action@v22
-        with:
-          extra-conf: |
-            extra-substituters = https://grigio.github.io/jcode
-            extra-trusted-public-keys = grigio-jcode:WdqguwKdwOilH+ITvLO98qZy9x5HQ8Cl0xltHtSsUvQ=
+      - uses: ./.github/actions/setup-nix
 
       - name: Regenerate opencode, jcode, pi-coding-agent, reasonix and maki badges
         run: bash scripts/update-badges.sh

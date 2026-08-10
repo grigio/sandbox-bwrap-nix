@@ -141,12 +141,14 @@ bwrap is also lighter than containers — no daemon, no image pulls, no layers, 
 this repo: the cache publishes both the `jcode` binary and its crane `cargoArtifacts`
 dependency layer, so `nix develop` only downloads the closure.
 
-The cache is configured in two places:
+The cache is configured in three places, all of which must stay in sync:
 
 - `nixConfig` in [`flake.nix`](flake.nix) — applies to every `nix develop`, `nix build`
   and `nix flake check` run in this repo
 - `sandbox-home/.config/nix/nix.conf` — the Nix config inside the sandbox (Nix runs with
   `HOME=sandbox-home`, so it reads this file)
+- `.github/actions/setup-nix/action.yml` — the composite action used by every workflow to
+  install Nix with the cache configured; it is the single source of truth for CI
 
 Paths the cache does not have fall back to building from source. The grigio
 cache only publishes **x86_64-linux**, so on that platform jcode is a pure
@@ -169,7 +171,9 @@ x86-64 (amd64) and CI runs on x86_64 runners.
 │   ├── update-badges.sh      # Regenerates badges/ from the versions pinned in the flake (used by CI, runnable locally)
 │   ├── update-reasonix.sh    # Bumps the reasonix version/hash pins in flake.nix to the latest GitHub CLI release (used by CI, runnable locally)
 │   └── update-maki.sh        # Bumps the maki version/hash pins in flake.nix to the latest GitHub release (used by CI, runnable locally)
-├── .github/workflows/      # GitHub Actions: sandbox CI, flake.lock updater, reasonix/maki pin updaters, version badge updater
+├── .github/
+│   ├── actions/setup-nix/  # Composite action: Nix install + jcode binary cache for CI
+│   └── workflows/          # GitHub Actions: sandbox CI, flake.lock updater, reasonix/maki pin updaters, version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc

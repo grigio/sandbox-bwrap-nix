@@ -55,11 +55,16 @@ SSL_CERT=$(readlink -f /etc/ssl/certs/ca-certificates.crt 2>/dev/null || echo "/
 # currently incompatible with the jcode browser bridge; host Firefox ~136
 # works), so the browser tool relies on a host browser landed in the chroot from
 # the read-only /usr/bin bind below. Keep that bind, or the tool cannot connect.
+#
+# --new-session starts the sandbox as a fresh session leader, so when the outer
+# terminal dies the whole sandbox tree is killed, not just the direct bwrap
+# child (with --die-with-parent alone, grandchildren can survive the parent).
 bwrap \
   --clearenv \
   --share-net \
   --unshare-pid \
   --die-with-parent \
+  --new-session \
   --unshare-uts \
   --bind /nix/store /nix/store \
   --bind /nix/var/nix /nix/var/nix \
@@ -83,7 +88,6 @@ bwrap \
   --ro-bind "$SSL_CERT" /etc/ssl/certs/ca-certificates.crt \
   --bind "$PWD" "$PWD" \
   --bind "$SCRIPT_DIR" "$SCRIPT_DIR" \
-  --bind "$SCRIPT_DIR/sandbox-home" "$SCRIPT_DIR/sandbox-home" \
   $( [ -d "$HOME/.config/opencode/skills" ] && echo "--bind $HOME/.config/opencode/skills $SCRIPT_DIR/sandbox-home/.config/opencode/skills" || echo "--tmpfs $SCRIPT_DIR/sandbox-home/.config/opencode/skills" ) \
   --tmpfs /tmp \
   --proc /proc \
