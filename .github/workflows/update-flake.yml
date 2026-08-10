@@ -81,6 +81,7 @@ jobs:
           ./start-sandbox.sh jcode --version
           ./start-sandbox.sh pi --version
           ./start-sandbox.sh reasonix --version
+          ./start-sandbox.sh maki --version
 
       - name: push branch
         if: steps.commit.outputs.changed == 'true'

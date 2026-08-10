@@ -47,3 +47,6 @@ jobs:
 
       - name: Run sandbox test (reasonix)
         run: ./start-sandbox.sh reasonix --version
+
+      - name: Run sandbox test (maki)
+        run: ./start-sandbox.sh maki --version

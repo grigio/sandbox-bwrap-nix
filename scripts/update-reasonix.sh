@@ -46,7 +46,13 @@ latest_tag="$(
 test -n "$latest_tag" || { echo "error: no reasonix CLI release tag found" >&2; exit 1; }
 
 # --- currently pinned version in flake.nix -----------------------------------
-pinned="$(sed -nE 's/^[[:space:]]*version = "([0-9]+\.[0-9]+\.[0-9]+)";/\1/p' flake.nix)"
+# flake.nix also pins maki with its own version line, so the read is scoped to
+# the reasonixFor block (same pattern as update-maki.sh).
+pinned="$(
+  sed -nE '/^[[:space:]]*reasonixFor = system:/,/^[[:space:]]*};$/ {
+    s/^[[:space:]]*version = "([0-9]+\.[0-9]+\.[0-9]+)";/\1/p
+  }' flake.nix | tail -n 1
+)"
 test -n "$pinned" || { echo "error: could not read pinned reasonix version from flake.nix" >&2; exit 1; }
 
 new_version="${latest_tag#v}"
@@ -83,9 +89,14 @@ if [ -z "$sri" ] && command -v python3 >/dev/null 2>&1; then
 fi
 test -n "$sri" || { echo "error: could not convert sha256 ${hex} to SRI format" >&2; exit 1; }
 
-# --- rewrite the two pins -----------------------------------------------------
-sed -i -E "s/version = \"[0-9]+\.[0-9]+\.[0-9]+\";/version = \"${new_version}\";/" flake.nix
-sed -i -E "s|hash = \"sha256-[A-Za-z0-9+/=]+\";|hash = \"${sri}\";|" flake.nix
+# --- rewrite the two pins, only inside the reasonixFor block -------------------
+# flake.nix also pins maki with its own version/hash, so the substitutions are
+# scoped with a sed range from the `reasonixFor = system:` line to the first
+# `};` line (both the version and hash lines precede that closing brace).
+sed -i -E "/^[[:space:]]*reasonixFor = system:/,/^[[:space:]]*};$/ {
+  s/version = \"[0-9]+\.[0-9]+\.[0-9]+\";/version = \"${new_version}\";/
+  s|hash = \"sha256-[A-Za-z0-9+/=]+\";|hash = \"${sri}\";|
+}" flake.nix
 git diff --stat flake.nix
 
 # --- verify the pin actually fetches and builds -------------------------------

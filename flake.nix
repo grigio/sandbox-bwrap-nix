@@ -33,7 +33,7 @@
       # download + install. No build steps and no runtime deps.
       # Only the x86-64 (amd64) build is used: the flake targets x86_64-linux.
       # The version/hash pins below are kept current by
-      # scripts/update-reasonix.sh, run every two hours by
+      # scripts/update-reasonix.sh, run weekly by
       # .github/workflows/update-reasonix.yml.
       reasonixFor = system:
         let

@@ -5,6 +5,7 @@
 [![jcode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/jcode.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![pi-coding-agent version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/pi-coding-agent.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![reasonix version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/reasonix.json)](https://github.com/grigio/sandbox-bwrap-nix)
+[![maki version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/maki.json)](https://github.com/grigio/sandbox-bwrap-nix)
 
 Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
 
@@ -46,20 +47,20 @@ coreml          ggml-cuda.cu  ggml-opencl.h     rec16.wav      whisper.h
 demo            ggml-cuda.h   LICENSE           rec16.wav.wts  whisper.o
 ➜  demo git:(master) ✗ sss ls ../
 === sandbox-bwrap-nix development shell ===
-  nixpkgs: nixpkgs-unstable (commit 7525d99)
-  tools: nix, git, bun, curl, uv, make, opencode
+  nixpkgs: nixpkgs-unstable (20260809 - 7525d99)
+  XKB_CONFIG_ROOT=/nix/store/xxx-xkeyboard-config/share/X11/xkb
 demo
 ➜  demo git:(master) ✗ opencode --version
 1.18.4
 ➜  demo git:(master) ✗ sss opencode --version
 === sandbox-bwrap-nix development shell ===
-  nixpkgs: nixpkgs-unstable (commit 7525d99)
-  tools: nix, git, bun, curl, uv, make, opencode
+  nixpkgs: nixpkgs-unstable (20260809 - 7525d99)
+  XKB_CONFIG_ROOT=/nix/store/xxx-xkeyboard-config/share/X11/xkb
 1.18.3
 ➜  demo git:(master) ✗ sss
 === sandbox-bwrap-nix development shell ===
-  nixpkgs: nixpkgs-unstable (commit 7525d99)
-  tools: nix, git, bun, curl, uv, make, opencode
+  nixpkgs: nixpkgs-unstable (20260809 - 7525d99)
+  XKB_CONFIG_ROOT=/nix/store/xxx-xkeyboard-config/share/X11/xkb
 ● demo $ ls ../
 demo
 ```
@@ -83,7 +84,7 @@ demo
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
-Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, pi-coding-agent, reasonix, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
+Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, pi-coding-agent, reasonix, maki, codex, cargo, yt-dlp, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
 
 ## What the sandbox isolates (and what it doesn't)
 
@@ -163,11 +164,12 @@ x86-64 (amd64) and CI runs on x86_64 runners.
 ├── start-sandbox.sh        # Entry point — invokes bwrap
 ├── flake.nix               # Nix flake with dev shell definition
 ├── flake.lock              # Pinned nixpkgs revision
-├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix), updated by CI
+├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix, maki), updated by CI
 ├── scripts/
 │   ├── update-badges.sh      # Regenerates badges/ from the versions pinned in the flake (used by CI, runnable locally)
-│   └── update-reasonix.sh    # Bumps the reasonix version/hash pins in flake.nix to the latest GitHub CLI release (used by CI, runnable locally)
-├── .github/workflows/      # GitHub Actions: flake.lock updater, reasonix pin updater, version badge updater
+│   ├── update-reasonix.sh    # Bumps the reasonix version/hash pins in flake.nix to the latest GitHub CLI release (used by CI, runnable locally)
+│   └── update-maki.sh        # Bumps the maki version/hash pins in flake.nix to the latest GitHub release (used by CI, runnable locally)
+├── .github/workflows/      # GitHub Actions: sandbox CI, flake.lock updater, reasonix/maki pin updaters, version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc
@@ -213,15 +215,18 @@ smoke-tests the sandbox, regenerates the version badges from the new lock, and
 merges everything through a PR. The badge workflow additionally refreshes the
 badges on every push to `master`, so they always match the locked versions.
 
-The pinned reasonix version in `flake.nix` is updated the same way: every two
-hours the **reasonix updater** workflow runs
+The pinned reasonix version in `flake.nix` is updated the same way: weekly the
+**reasonix updater** workflow runs
 [`scripts/update-reasonix.sh`](scripts/update-reasonix.sh), which queries the
 latest `vX.Y.Z` CLI release on GitHub (the `desktop-v*` releases are a separate
 desktop-app track and are skipped), rewrites the version/hash pins from the
 release's `SHA256SUMS`, validates with `nix build .#reasonix`, and auto-merges
-a PR after smoke-testing the sandbox and refreshing the badges. To bump
-reasonix manually, just edit the `version` and `hash` lines in `flake.nix` or
-run `bash scripts/update-reasonix.sh`.
+a PR after smoke-testing the sandbox and refreshing the badges. The maki pin is
+kept current by the same pattern:
+[`scripts/update-maki.sh`](scripts/update-maki.sh) runs weekly, validates with
+`nix build .#maki`, and auto-merges a PR. To bump either tool manually, just
+edit the `version` and `hash` lines in `flake.nix` or run
+`bash scripts/update-reasonix.sh` / `bash scripts/update-maki.sh`.
 
 ## License
 
