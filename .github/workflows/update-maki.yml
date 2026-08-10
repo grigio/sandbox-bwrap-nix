@@ -1,26 +1,25 @@
-name: update reasonix pin
+name: update maki pin
 
-# Keeps the reasonix version/hash pins in flake.nix on the latest GitHub CLI
-# release. Reasonix ships the CLI (vX.Y.Z) and a separate desktop app
-# (desktop-vX.Y.Z), so we check weekly (every 7 days).
+# Keeps the maki version/hash pins in flake.nix on the latest GitHub release.
+# Maki ships a single vX.Y.Z release track, so we check weekly (every 7 days).
 #
-# Flow: scripts/update-reasonix.sh bumps the pins and validates with
-# `nix build .#reasonix`; if something changed we flake-check, smoke-test the
+# Flow: scripts/update-maki.sh bumps the pins and validates with
+# `nix build .#maki`; if something changed we flake-check, smoke-test the
 # sandbox, refresh the version badges, then auto-merge a PR (same pattern as
-# update-flake.yml).
+# update-reasonix.yml).
 
 on:
   workflow_dispatch:
   schedule:
-    # weekly on Sunday at 06:00 UTC (staggered after maki to avoid contention)
-    - cron: "0 6 * * 0"
+    # weekly on Sunday at 05:00 UTC
+    - cron: "0 5 * * 0"
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: reasonix-update
+  group: maki-update
   cancel-in-progress: true
 
 jobs:
@@ -40,30 +39,30 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Reads the latest vX.Y.Z (CLI) release, rewrites the version and hash
-      # pins in flake.nix, then verifies with `nix build .#reasonix`. Sets
-      # outputs.changed so the remaining steps skip when nothing to do.
-      - name: bump reasonix pin
-        id: reasonix
-        run: bash scripts/update-reasonix.sh
+      # Reads the latest vX.Y.Z release, rewrites the version and hash pins in
+      # flake.nix, then verifies with `nix build .#maki`. Sets outputs.changed
+      # so the remaining steps skip when nothing to do.
+      - name: bump maki pin
+        id: maki
+        run: bash scripts/update-maki.sh
 
       - name: validate flake
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         run: nix flake check --all-systems
 
       - name: regenerate version badges from the new pin
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         run: bash scripts/update-badges.sh
 
       - name: commit flake.nix and badges
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         run: |
           git add flake.nix badges/
           git diff --cached --quiet || \
-            git commit -m "chore: bump reasonix to latest release"
+            git commit -m "chore: bump maki to latest release"
 
       - name: fix Nix daemon and database permissions
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         run: |
           sudo mkdir -p /nix/var/nix/db
           sudo mkdir -p /nix/var/nix/builds
@@ -75,43 +74,43 @@ jobs:
           sudo systemctl restart nix-daemon || true
 
       - name: install bubblewrap and configure subuids
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         run: |
           sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
           sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
           sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
 
-      - name: run sandbox smoke test (reasonix)
-        if: steps.reasonix.outputs.changed == 'true'
-        run: ./start-sandbox.sh reasonix --version
+      - name: run sandbox smoke test (maki)
+        if: steps.maki.outputs.changed == 'true'
+        run: ./start-sandbox.sh maki --version
 
       - name: push branch
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         env:
           GIT_TERMINAL_PROMPT: "0"
         run: |
           git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
-          git branch -f auto/update-reasonix
-          git push origin auto/update-reasonix --force
+          git branch -f auto/update-maki
+          git push origin auto/update-maki --force
 
       - name: create PR
         id: create-pr
-        if: steps.reasonix.outputs.changed == 'true'
+        if: steps.maki.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_BODY='Automated reasonix pin update from scripts/update-reasonix.sh.
-          - Validated with nix build .#reasonix and nix flake check --all-systems.
-          - Sandbox smoke-tested with start-sandbox.sh reasonix --version.
+          PR_BODY='Automated maki pin update from scripts/update-maki.sh.
+          - Validated with nix build .#maki and nix flake check --all-systems.
+          - Sandbox smoke-tested with start-sandbox.sh maki --version.
           - Version badges regenerated.'
           # Reuse an existing open PR from a previous run instead of stacking
-          # a second one for the same auto/update-reasonix branch.
-          PR_URL=$(gh pr list --head auto/update-reasonix --base master --json url --jq '.[0].url' 2>/dev/null || true)
+          # a second one for the same auto/update-maki branch.
+          PR_URL=$(gh pr list --head auto/update-maki --base master --json url --jq '.[0].url' 2>/dev/null || true)
           if [ -z "$PR_URL" ]; then
             PR_URL=$(gh pr create \
               --base master \
-              --head auto/update-reasonix \
-              --title "chore: bump reasonix to latest release" \
+              --head auto/update-maki \
+              --title "chore: bump maki to latest release" \
               --body "$PR_BODY") || true
           fi
           echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
@@ -122,5 +121,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr merge --squash --delete-branch "${{ steps.create-pr.outputs.pr-url }}" \
-            --subject "chore: bump reasonix to latest release" || \
+            --subject "chore: bump maki to latest release" || \
             echo "PR not auto-merged (checks pending or conflict); merge manually"
