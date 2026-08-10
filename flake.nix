@@ -28,77 +28,73 @@
       # the whole tree anew on every call.
       pkgsFor = system: nixpkgs.legacyPackages.${system};
 
-      # Reasonix CLI is shipped as a statically linked Go binary in a flat
-      # tarball per platform on GitHub Releases, so packaging it is a pure
-      # download + install. No build steps and no runtime deps.
-      # Only the x86-64 (amd64) build is used: the flake targets x86_64-linux.
-      # The version/hash pins below are kept current by
-      # scripts/update-reasonix.sh, run weekly by
-      # .github/workflows/update-reasonix.yml.
-      reasonixFor = system:
+      # Generic packaging for tools shipped as a single statically linked
+      # binary in a flat tarball on GitHub Releases (reasonix, maki): a pure
+      # download + install, no build steps and no runtime deps.
+      # Only the x86-64 build is used: the flake targets x86_64-linux.
+      # `url` may interpolate `${version}`. The pin updater scripts
+      # (scripts/update-*.sh) rewrite the `version` and `hash` lines inside
+      # each package's block below, so keep those lines before the closing
+      # `};` of the block they belong to.
+      githubReleaseBin =
+        { system, pname, version, url, hash, binary, description, homepage }:
         let
           pkgs = pkgsFor system;
-          version = "1.21.3";
         in
         pkgs.stdenvNoCC.mkDerivation {
-          pname = "reasonix";
-          inherit version;
-          src = pkgs.fetchurl {
-            url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-            hash = "sha256-yxKcPgXYqrOSb+SEnmjco5y+dEBHhYQnKml7Vh2N4EE=";
-          };
-          # The tarball has no wrapping directory, so files land at the top
+          inherit pname version;
+          src = pkgs.fetchurl { inherit url hash; };
+          # The tarballs have no wrapping directory, so files land at the top
           # level of the build dir.
           sourceRoot = ".";
           installPhase = ''
             runHook preInstall
-            install -Dm755 reasonix $out/bin/reasonix
+            install -Dm755 ${binary} $out/bin/${binary}
             runHook postInstall
           '';
           meta = with pkgs.lib; {
-            description = "DeepSeek-native AI coding agent for your terminal";
-            homepage = "https://github.com/esengine/DeepSeek-Reasonix";
+            inherit description homepage;
             license = licenses.mit;
-            mainProgram = "reasonix";
+            mainProgram = binary;
             platforms = [ "x86_64-linux" ];
           };
         };
 
+      # Reasonix CLI is shipped as a statically linked Go binary in a flat
+      # tarball per platform on GitHub Releases. The version/hash pins below
+      # are kept current by scripts/update-reasonix.sh, run weekly by
+      # .github/workflows/update-reasonix.yml.
+      reasonixFor = system:
+        let
+          version = "1.21.3";
+        in
+        githubReleaseBin {
+          inherit system version;
+          pname = "reasonix";
+          url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
+          hash = "sha256-yxKcPgXYqrOSb+SEnmjco5y+dEBHhYQnKml7Vh2N4EE=";
+          binary = "reasonix";
+          description = "DeepSeek-native AI coding agent for your terminal";
+          homepage = "https://github.com/esengine/DeepSeek-Reasonix";
+        };
+
       # Maki (https://github.com/tontinton/maki) is an AI coding agent shipped
       # as a statically linked musl binary in a flat tarball per platform on
-      # GitHub Releases, so packaging it is a pure download + install. No
-      # build steps and no runtime deps (statically linked).
-      # Only the x86-64 build is used: the flake targets x86_64-linux.
-      # The version/hash pins below are kept current by
+      # GitHub Releases. The version/hash pins below are kept current by
       # scripts/update-maki.sh, run weekly by
       # .github/workflows/update-maki.yml.
       makiFor = system:
         let
-          pkgs = pkgsFor system;
           version = "0.4.5";
         in
-        pkgs.stdenvNoCC.mkDerivation {
+        githubReleaseBin {
+          inherit system version;
           pname = "maki";
-          inherit version;
-          src = pkgs.fetchurl {
-            url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
-            hash = "sha256-MWpGpcs292gyQBVQve3AlSOiZCWebIwOmiQKVpcrJDE";
-          };
-          # The tarball has no wrapping directory, so the binary lands at the
-          # top level of the build dir.
-          sourceRoot = ".";
-          installPhase = ''
-            runHook preInstall
-            install -Dm755 maki $out/bin/maki
-            runHook postInstall
-          '';
-          meta = with pkgs.lib; {
-            description = "An efficient AI coding agent extendable by neovim like Lua plugins";
-            homepage = "https://github.com/tontinton/maki";
-            license = licenses.mit;
-            mainProgram = "maki";
-            platforms = [ "x86_64-linux" ];
-          };
+          url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
+          hash = "sha256-MWpGpcs292gyQBVQve3AlSOiZCWebIwOmiQKVpcrJDE";
+          binary = "maki";
+          description = "An efficient AI coding agent extendable by neovim like Lua plugins";
+          homepage = "https://github.com/tontinton/maki";
         };
     in
     {
@@ -110,7 +106,14 @@
           pkgs = pkgsFor system;
         in
         {
+          # Building the dev shell exercises the whole tool set, including
+          # jcode from the grigio binary cache.
           default = self.devShells.${system}.default;
+          # Building the pinned binary packages validates the version/hash
+          # pins in flake.nix (a wrong pin fails the fixed-output fetch), so
+          # `nix flake check` catches any drift or updater-script bug.
+          reasonix = self.packages.${system}.reasonix;
+          maki = self.packages.${system}.maki;
           # Formatting gate: `nix flake check` (and CI) fail if flake.nix is
           # not nixpkgs-fmt clean. `nix fmt` normalizes it locally.
           fmt = pkgs.runCommand "check-nixpkgs-fmt" { src = self; } ''
