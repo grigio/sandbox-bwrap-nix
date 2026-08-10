@@ -5,7 +5,7 @@ on:
     branches: [master]
   schedule:
     # daily at 05:00 UTC; versions change when flake.lock is bumped or when
-    # pins in flake.nix move (e.g. reasonix)
+    # pins in flake.nix move (e.g. reasonix, maki)
     - cron: "0 5 * * *"
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
             extra-substituters = https://grigio.github.io/jcode
             extra-trusted-public-keys = grigio-jcode:WdqguwKdwOilH+ITvLO98qZy9x5HQ8Cl0xltHtSsUvQ=
 
-      - name: Regenerate opencode, jcode, pi-coding-agent and reasonix badges
+      - name: Regenerate opencode, jcode, pi-coding-agent, reasonix and maki badges
         run: bash scripts/update-badges.sh
 
       - name: Commit badge updates
@@ -39,6 +39,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Badges unchanged, nothing to commit"
           else
-            git commit -m "badges: update opencode/jcode/pi-coding-agent/reasonix versions"
+            git commit -m "badges: update opencode/jcode/pi-coding-agent/reasonix/maki versions"
             git push
           fi

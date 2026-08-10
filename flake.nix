@@ -63,6 +63,43 @@
             platforms = [ "x86_64-linux" ];
           };
         };
+
+      # Maki (https://github.com/tontinton/maki) is an AI coding agent shipped
+      # as a statically linked musl binary in a flat tarball per platform on
+      # GitHub Releases, so packaging it is a pure download + install. No
+      # build steps and no runtime deps (statically linked).
+      # Only the x86-64 build is used: the flake targets x86_64-linux.
+      # The version/hash pins below are kept current by
+      # scripts/update-maki.sh, run weekly by
+      # .github/workflows/update-maki.yml.
+      makiFor = system:
+        let
+          pkgs = pkgsFor system;
+          version = "0.4.5";
+        in
+        pkgs.stdenvNoCC.mkDerivation {
+          pname = "maki";
+          inherit version;
+          src = pkgs.fetchurl {
+            url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
+            hash = "sha256-MWpGpcs292gyQBVQve3AlSOiZCWebIwOmiQKVpcrJDE";
+          };
+          # The tarball has no wrapping directory, so the binary lands at the
+          # top level of the build dir.
+          sourceRoot = ".";
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 maki $out/bin/maki
+            runHook postInstall
+          '';
+          meta = with pkgs.lib; {
+            description = "An efficient AI coding agent extendable by neovim like Lua plugins";
+            homepage = "https://github.com/tontinton/maki";
+            license = licenses.mit;
+            mainProgram = "maki";
+            platforms = [ "x86_64-linux" ];
+          };
+        };
     in
     {
       # `nix fmt` formats flake.nix with nixpkgs-fmt
@@ -86,13 +123,16 @@
       # `nix build .#reasonix`, `nix run .#reasonix`, or `nix profile install`
       packages = forAllSystems (system: {
         reasonix = reasonixFor system;
+        maki = makiFor system;
       });
 
       devShells = forAllSystems (system:
         let
           pkgs = pkgsFor system;
-          # reasonix is packaged by this flake (see `packages`), not nixpkgs
+          # reasonix and maki are packaged by this flake (see `packages`),
+          # not nixpkgs
           reasonix = self.packages.${system}.reasonix;
+          maki = self.packages.${system}.maki;
           # jcode comes prebuilt from the grigio binary cache; this flake only
           # targets x86_64-linux, where the cache makes it a pure download.
           jcode' = jcode.packages.${system}.default or null;
@@ -131,7 +171,8 @@
               opencode
               pi-coding-agent
               reasonix
-
+              maki
+              codex
               # Browser support: Firefox's GUI needs XKB keyboard rules and
               # fontconfig config, which `--clearenv` in start-sandbox.sh strips
               # out of the host environment. Without these, Firefox crashes on
