@@ -54,8 +54,13 @@ latest_version="$(
 test -n "$latest_version" || { echo "error: could not resolve ${pkg} latest version" >&2; exit 1; }
 
 # --- currently pinned version in flake.nix -----------------------------------
+# The deepseekHarnessFor block ends at the `});` that closes the
+# buildNpmPackage derivation call (the block nests `meta`, `src`, `postPatch`,
+# and `postInstall` attr-sets, each closed with `};`), unlike the reasonix/maki
+# blocks whose pins precede a single closing `};`. The range therefore runs to
+# the first `});`.
 pinned="$(
-  sed -nE '/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*};$/ {
+  sed -nE '/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*\}\);$/ {
     s/^[[:space:]]*version = "([^"]+)";/\1/p
   }' flake.nix | tail -n 1
 )"
@@ -108,7 +113,8 @@ test -n "$npmdeps_hash" || { echo "error: could not derive npmDepsHash for ${pkg
 
 # --- rewrite the pins, only inside the deepseekHarnessFor block ---------------
 # version, the tarball src hash, and the npmDepsHash all live in that block.
-sed -i -E "/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*};$/ {
+# Range runs to the closing `});` (the block nests attr-sets closed with `};`).
+sed -i -E "/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*\}\);$/ {
   s/version = \"[^\"]+\";/version = \"${latest_version}\";/
   s|hash = \"sha256-[A-Za-z0-9+/=]+\";|hash = \"${sri}\";|
   s|npmDepsHash = \"sha256-[A-Za-z0-9+/=]+\";|npmDepsHash = \"${npmdeps_hash}\";|
