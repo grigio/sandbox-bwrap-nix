@@ -96,6 +96,68 @@
           description = "An efficient AI coding agent extendable by neovim like Lua plugins";
           homepage = "https://github.com/tontinton/maki";
         };
+
+      # DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), the
+      # `dsh` CLI from deepseek-ai. Upstream distributes it as the public npm
+      # package @deepseek-ai/dsh (no GitHub releases or prebuilt nix binaries),
+      # so we wrap the published tarball with nixpkgs' buildNpmPackage.
+      # The published tarball ships no package-lock.json, so a lock generated
+      # from the tarball at this version is vendored under vendor/dsh/ (and
+      # tidied with `npm install --package-lock-only --ignore-scripts`).
+      # DeepSeek Harness is in rapid developer preview and `master` moves
+      # hourly, but the npm package version is the stable unit to pin. The
+      # version/hash pins below are kept current by scripts/update-dsh.sh, run
+      # weekly by .github/workflows/update-dsh.yml.
+      deepseekHarnessFor = system:
+        let
+          pkgs = pkgsFor system;
+          version = "0.1.0-rc.6";
+          dshLock = ./vendor/dsh/package-lock.json;
+        in
+        pkgs.buildNpmPackage.override { nodejs = pkgs.nodejs_24; } (finalAttrs: {
+          pname = "deepseek-harness";
+          inherit version;
+          description = "DeepSeek Harness (dsh): everything-is-a-plugin agent harness";
+          homepage = "https://github.com/deepseek-ai/deepseek-harness";
+          meta = {
+            license = pkgs.lib.licenses.mit;
+            mainProgram = "dsh";
+            platforms = pkgs.nodejs_24.meta.platforms;
+          };
+
+          src = pkgs.fetchurl {
+            url = "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-${finalAttrs.version}.tgz";
+            hash = "sha256-G4qaCtPH/q7OR5JuC9N8oVHHzPqZeVOvpf0BJheE6tw=";
+          };
+
+          postPatch = ''
+            cp ${dshLock} ./package-lock.json
+          '';
+
+          npmDepsHash = "sha256-9Cx3OhIK3xuyd6o+HZhAs+2eGsIrys8fNdtRePd4GnQ=";
+
+          # The published package ships prebuilt lib/ JS; there is nothing to
+          # compile. Native addons (node-pty, koffi) are still built by
+          # npmRebuild during the install phase.
+          dontBuild = true;
+
+          # Runtime needs the Node internal loader (used by the HMR plugin),
+          # which is only reachable with --expose-internals.
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          postInstall = ''
+            mkdir -p $out/bin
+            makeWrapper ${pkgs.nodejs_24}/bin/node $out/bin/dsh \
+              --add-flags --expose-internals \
+              --add-flags $out/lib/node_modules/@deepseek-ai/dsh/lib/bin.js
+            # Convenience alias to the package name, mirroring the reasonix /
+            # maki smoke tests (the upstream binary is `dsh`).
+            ln -s dsh $out/bin/deepseek-harness
+          '';
+
+          # The package ships no test suite; the sandbox smoke test exercises
+          # `dsh --version` via start-sandbox.sh.
+          doCheck = false;
+        });
     in
     {
       # `nix fmt` formats flake.nix with nixpkgs-fmt
@@ -114,6 +176,10 @@
           # `nix flake check` catches any drift or updater-script bug.
           reasonix = self.packages.${system}.reasonix;
           maki = self.packages.${system}.maki;
+          # Building the dsh npm wrap validates the npm version/hash pins and
+          # the vendored package-lock (a wrong pin fails the fixed-output
+          # fetch, and the vendored lock must match the src package.json).
+          deepseek-harness = self.packages.${system}.deepseek-harness;
           # Formatting gate: `nix flake check` (and CI) fail if flake.nix is
           # not nixpkgs-fmt clean. `nix fmt` normalizes it locally.
           fmt = pkgs.runCommand "check-nixpkgs-fmt" { src = self; } ''
@@ -127,6 +193,7 @@
       packages = forAllSystems (system: {
         reasonix = reasonixFor system;
         maki = makiFor system;
+        deepseek-harness = deepseekHarnessFor system;
       });
 
       devShells = forAllSystems (system:
@@ -136,6 +203,8 @@
           # not nixpkgs
           reasonix = self.packages.${system}.reasonix;
           maki = self.packages.${system}.maki;
+          # dsh (DeepSeek Harness) is packaged by this flake (see `packages`)
+          deepseek-harness = self.packages.${system}.deepseek-harness;
           # jcode comes prebuilt from the grigio binary cache; this flake only
           # targets x86_64-linux, where the cache makes it a pure download.
           jcode' = jcode.packages.${system}.default or null;
@@ -175,6 +244,7 @@
               pi-coding-agent
               reasonix
               maki
+              deepseek-harness
               codex
               # Browser support: Firefox's GUI needs XKB keyboard rules and
               # fontconfig config, which `--clearenv` in start-sandbox.sh strips

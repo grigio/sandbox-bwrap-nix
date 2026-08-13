@@ -1,0 +1,130 @@
+name: update dsh pin
+
+# Keeps the deepseek-harness (dsh) version/hash pins in flake.nix and the
+# vendored lock under vendor/dsh/ on the latest @deepseek-ai/dsh npm release.
+# DeepSeek Harness is in rapid developer preview (master moves hourly and the
+# npm package is the stable unit), so we check weekly (every 7 days).
+#
+# Flow: scripts/update-dsh.sh bumps the pins, regenerates the vendored
+# package-lock, and validates with `nix build .#deepseek-harness`; if something
+# changed we flake-check, smoke-test the sandbox, refresh the version badges,
+# then auto-merge a PR (same pattern as update-reasonix.yml).
+
+on:
+  workflow_dispatch:
+  schedule:
+    # weekly on Sunday at 07:00 UTC (staggered after reasonix to avoid contention)
+    - cron: "0 7 * * 0"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dsh-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-nix
+
+      - name: configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: install nodejs (for vendored lock regeneration)
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      # Reads the latest npm release, rewrites the version and hash pins in
+      # flake.nix, regenerates vendor/dsh/package-lock.json, then verifies with
+      # `nix build .#deepseek-harness`. Sets outputs.changed so the remaining
+      # steps skip when nothing to do.
+      - name: bump dsh pin
+        id: dsh
+        run: bash scripts/update-dsh.sh
+
+      - name: validate flake
+        if: steps.dsh.outputs.changed == 'true'
+        run: nix flake check --all-systems
+
+      - name: regenerate version badges from the new pin
+        if: steps.dsh.outputs.changed == 'true'
+        run: bash scripts/update-badges.sh
+
+      - name: commit flake.nix, vendor lock and badges
+        if: steps.dsh.outputs.changed == 'true'
+        run: |
+          git add flake.nix vendor/dsh/package-lock.json badges/
+          git diff --cached --quiet || \
+            git commit -m "chore: bump deepseek-harness to latest release"
+
+      - name: fix Nix daemon and database permissions
+        if: steps.dsh.outputs.changed == 'true'
+        run: |
+          sudo mkdir -p /nix/var/nix/db
+          sudo mkdir -p /nix/var/nix/builds
+          sudo chown -R root:root /nix
+          sudo chmod 755 /nix
+          sudo chmod 755 /nix/var
+          sudo chmod 755 /nix/var/nix
+          sudo chmod 755 /nix/var/nix/db
+          sudo systemctl restart nix-daemon || true
+
+      - name: install bubblewrap and configure subuids
+        if: steps.dsh.outputs.changed == 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y bubblewrap uidmap
+          sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 runner
+          sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
+
+      - name: run sandbox smoke test (dsh)
+        if: steps.dsh.outputs.changed == 'true'
+        run: ./start-sandbox.sh dsh --version
+
+      - name: push branch
+        if: steps.dsh.outputs.changed == 'true'
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          git branch -f auto/update-dsh
+          git push origin auto/update-dsh --force
+
+      - name: create PR
+        id: create-pr
+        if: steps.dsh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_BODY='Automated deepseek-harness pin update from scripts/update-dsh.sh.
+          - Validated with nix build .#deepseek-harness and nix flake check --all-systems.
+          - Vendored vendor/dsh/package-lock.json regenerated from the new npm tarball.
+          - Sandbox smoke-tested with start-sandbox.sh dsh --version.
+          - Version badges regenerated.'
+          # Reuse an existing open PR from a previous run instead of stacking
+          # a second one for the same auto/update-dsh branch.
+          PR_URL=$(gh pr list --head auto/update-dsh --base master --json url --jq '.[0].url' 2>/dev/null || true)
+          if [ -z "$PR_URL" ]; then
+            PR_URL=$(gh pr create \
+              --base master \
+              --head auto/update-dsh \
+              --title "chore: bump deepseek-harness to latest release" \
+              --body "$PR_BODY") || true
+          fi
+          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      - name: merge PR
+        if: steps.create-pr.outputs.pr-url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge --squash --delete-branch "${{ steps.create-pr.outputs.pr-url }}" \
+            --subject "chore: bump deepseek-harness to latest release" || \
+            echo "PR not auto-merged (checks pending or conflict); merge manually"

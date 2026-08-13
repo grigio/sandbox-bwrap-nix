@@ -48,3 +48,6 @@ jobs:
 
       - name: Run sandbox test (maki)
         run: ./start-sandbox.sh maki --version
+
+      - name: Run sandbox test (deepseek-harness)
+        run: ./start-sandbox.sh dsh --version

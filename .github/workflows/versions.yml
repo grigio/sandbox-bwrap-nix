@@ -24,7 +24,7 @@ jobs:
 
       - uses: ./.github/actions/setup-nix
 
-      - name: Regenerate opencode, jcode, pi-coding-agent, reasonix and maki badges
+      - name: Regenerate opencode, jcode, pi-coding-agent, reasonix, maki and deepseek-harness badges
         run: bash scripts/update-badges.sh
 
       - name: Commit badge updates
@@ -35,6 +35,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Badges unchanged, nothing to commit"
           else
-            git commit -m "badges: update opencode/jcode/pi-coding-agent/reasonix/maki versions"
+            git commit -m "badges: update opencode/jcode/pi-coding-agent/reasonix/maki/deepseek-harness versions"
             git push
           fi
