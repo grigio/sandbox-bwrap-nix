@@ -85,13 +85,13 @@
       # .github/workflows/update-maki.yml.
       makiFor = system:
         let
-          version = "0.4.5";
+          version = "0.4.8";
         in
         githubReleaseBin {
           inherit system version;
           pname = "maki";
           url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
-          hash = "sha256-MWpGpcs292gyQBVQve3AlSOiZCWebIwOmiQKVpcrJDE";
+          hash = "sha256-9B/THICKjdS05wYSIlba0y87GZ1jkFFUtU+DHj8MBvg=";
           binary = "maki";
           description = "An efficient AI coding agent extendable by neovim like Lua plugins";
           homepage = "https://github.com/tontinton/maki";
