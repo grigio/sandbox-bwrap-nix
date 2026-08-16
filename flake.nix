@@ -66,13 +66,13 @@
       # .github/workflows/update-reasonix.yml.
       reasonixFor = system:
         let
-          version = "1.21.3";
+          version = "1.25.3";
         in
         githubReleaseBin {
           inherit system version;
           pname = "reasonix";
           url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-          hash = "sha256-yxKcPgXYqrOSb+SEnmjco5y+dEBHhYQnKml7Vh2N4EE=";
+          hash = "sha256-gYUwZ0xTQJ2RgdJeaPBRuqhzaGxT1NaEaoBb0mIoAB8=";
           binary = "reasonix";
           description = "DeepSeek-native AI coding agent for your terminal";
           homepage = "https://github.com/esengine/DeepSeek-Reasonix";
