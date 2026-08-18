@@ -2,9 +2,18 @@ export EDITOR=micro
 export PAGER=less
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
-export TERM=xterm-256color
 export USER=nixuser
 export SHELL="$(command -v bash)"
+
+# Keep the terminal identity bwrap injected (TERM=xterm-ghostty, TERM_PROGRAM=ghostty)
+# so TUIs like jcode can detect kitty-graphics inline-image support. Only fall back
+# to a bare xterm when TERM wasn't set at all.
+export TERM="${TERM:-xterm-256color}"
+if [ -z "${TERM_PROGRAM:-}" ]; then
+  case "$TERM" in
+    *ghostty*) export TERM_PROGRAM=ghostty ;;
+  esac
+fi
 
 export JCODE_NO_AUTO_UPDATE=1
 

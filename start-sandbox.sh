@@ -22,6 +22,18 @@ HOST_GID=$(id -g)
 XAUTH="${XAUTHORITY:-$HOME/.Xauthority}"
 [ -f "$XAUTH" ] && XAUTH_PRESENT=1 || XAUTH_PRESENT=0
 
+# Terminal identity. --clearenv also strips TERM_PROGRAM/COLORTERM and the
+# GHOSTTY_* vars, which jcode and other TUIs read to detect inline-image (kitty
+# graphics protocol) support. When the host uses Ghostty it advertises TERM as
+# *ghostty* but TERM_PROGRAM is often unset, so default the program name from
+# TERM and pass the whole set through bwrap.
+TERM_PROGRAM_HOST="${TERM_PROGRAM:-}"
+if [ -z "$TERM_PROGRAM_HOST" ]; then
+  case "$TERM" in
+    *ghostty*) TERM_PROGRAM_HOST=ghostty ;;
+  esac
+fi
+
 grep -v "^${HOST_USER}:" /etc/passwd > "$SANDBOX_PASSWD"
 echo "nixuser:x:${HOST_UID}:${HOST_GID}:sandbox user:${SCRIPT_DIR}/sandbox-home:/bin/bash" >> "$SANDBOX_PASSWD"
 grep -v "^${HOST_USER}:" /etc/group > "$SANDBOX_GROUP"
@@ -110,6 +122,10 @@ bwrap \
   --setenv PATH "/bin:/usr/bin" \
   --setenv TMPDIR /tmp \
   --setenv TERM "${TERM:-xterm-256color}" \
+  --setenv TERM_PROGRAM "$TERM_PROGRAM_HOST" \
+  $( [ -n "${COLORTERM:-}" ] && echo "--setenv COLORTERM $COLORTERM" || true ) \
+  $( [ -n "${GHOSTTY_RESOURCES_DIR:-}" ] && echo "--setenv GHOSTTY_RESOURCES_DIR $GHOSTTY_RESOURCES_DIR" || true ) \
+  $( [ -n "${GHOSTTY_BIN_DIR:-}" ] && echo "--setenv GHOSTTY_BIN_DIR $GHOSTTY_BIN_DIR" || true ) \
   --chdir "$PWD" \
   /bin/bash -c '
     set -e
