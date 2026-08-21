@@ -13,7 +13,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    # jcode, prebuilt via the grigio Nix binary cache (https://grigio.github.io/jcode)
+    # jcode is a prebuilt binary from the grigio Nix binary cache (https://grigio.github.io/jcode, install docs: https://github.com/grigio/jcode#install-flake).
     jcode.url = "github:grigio/jcode";
   };
 
@@ -66,13 +66,13 @@
       # .github/workflows/update-reasonix.yml.
       reasonixFor = system:
         let
-          version = "1.25.3";
+          version = "1.31.2";
         in
         githubReleaseBin {
           inherit system version;
           pname = "reasonix";
           url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-          hash = "sha256-gYUwZ0xTQJ2RgdJeaPBRuqhzaGxT1NaEaoBb0mIoAB8=";
+          hash = "sha256-o5Y7mbhLReuJkrbrR30T7lYsdCVymocXt12T3/b4Tds=";
           binary = "reasonix";
           description = "DeepSeek-native AI coding agent for your terminal";
           homepage = "https://github.com/esengine/DeepSeek-Reasonix";
@@ -85,13 +85,13 @@
       # .github/workflows/update-maki.yml.
       makiFor = system:
         let
-          version = "0.4.8";
+          version = "0.4.11";
         in
         githubReleaseBin {
           inherit system version;
           pname = "maki";
           url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
-          hash = "sha256-9B/THICKjdS05wYSIlba0y87GZ1jkFFUtU+DHj8MBvg=";
+          hash = "sha256-lvi4zcMETR1rc5932o5bUkBJPpxSX0pXVKihNcdbGCw=";
           binary = "maki";
           description = "An efficient AI coding agent extendable by neovim like Lua plugins";
           homepage = "https://github.com/tontinton/maki";
