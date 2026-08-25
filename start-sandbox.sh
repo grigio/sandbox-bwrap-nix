@@ -29,7 +29,7 @@ XAUTH="${XAUTHORITY:-$HOME/.Xauthority}"
 # TERM and pass the whole set through bwrap.
 TERM_PROGRAM_HOST="${TERM_PROGRAM:-}"
 if [ -z "$TERM_PROGRAM_HOST" ]; then
-  case "$TERM" in
+  case "${TERM:-}" in
     *ghostty*) TERM_PROGRAM_HOST=ghostty ;;
   esac
 fi
