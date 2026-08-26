@@ -42,11 +42,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1787662541,
-        "narHash": "sha256-AM2lDXnNExYT3vo05zpksdhUYCtu8o83ftdNGK8jIv8=",
+        "lastModified": 1787721276,
+        "narHash": "sha256-08cweBYtaUiaFS6SCAxRVQzzPfqSBWBWhU+8WM5oSbo=",
         "owner": "grigio",
         "repo": "jcode",
-        "rev": "1db4469f8361194aa5626b1c510c8b571959daad",
+        "rev": "8e36bca0008bfd17e0eac218fb2d933cfceac3fc",
         "type": "github"
       },
       "original": {
@@ -58,16 +58,16 @@
     "jcode-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1787657551,
-        "narHash": "sha256-NuHfv9nCvLyTECXYL+t6Nvth14xKttms8JvtB7W2skU=",
+        "lastModified": 1787711563,
+        "narHash": "sha256-JO3eK/7ItkqHHGzwjMw3POrSOJV9LRNZ/GBuF/LgLPI=",
         "owner": "1jehuang",
         "repo": "jcode",
-        "rev": "d37ffd3dc238bd794dc36d0a72793307cc4d89f4",
+        "rev": "cae6d2a573ebfdbfaca085a82abb1f0b72faac69",
         "type": "github"
       },
       "original": {
         "owner": "1jehuang",
-        "ref": "v0.80.1",
+        "ref": "v0.81.1",
         "repo": "jcode",
         "type": "github"
       }
