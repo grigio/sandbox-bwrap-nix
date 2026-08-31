@@ -56,9 +56,8 @@ test -n "$latest_version" || { echo "error: could not resolve ${pkg} latest vers
 # --- currently pinned version in flake.nix -----------------------------------
 # The deepseekHarnessFor block ends at the `});` that closes the
 # buildNpmPackage derivation call (the block nests `meta`, `src`, `postPatch`,
-# and `postInstall` attr-sets, each closed with `};`), unlike the reasonix/maki
-# blocks whose pins precede a single closing `};`. The range therefore runs to
-# the first `});`.
+# and `postInstall` attr-sets, each closed with `};`). The range therefore runs
+# to the first `});`.
 pinned="$(
   sed -nE '/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*\}\);$/ {
     s/^[[:space:]]*version = "([^"]+)";/\1/p

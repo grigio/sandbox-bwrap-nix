@@ -21,18 +21,12 @@ mkdir -p badges
 opencode_version="$(nix shell --inputs-from . 'nixpkgs#opencode' -c opencode --version | tail -n 1)"
 jcode_version="$(nix shell --inputs-from . 'jcode#default' -c jcode --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
 pi_version="$(nix shell --inputs-from . 'nixpkgs#pi-coding-agent' -c pi --version | tail -n 1)"
-reasonix_version="$(nix shell --inputs-from . '.#reasonix' -c reasonix --version | tail -n 1 | sed -E 's/.*v([0-9]+(\.[0-9]+)*).*/\1/')"
-# maki --version prints "maki 0.4.5" (no v prefix, unlike reasonix), so use a
-# bare version-number match.
-maki_version="$(nix shell --inputs-from . '.#maki' -c maki --version | tail -n 1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
 # dsh (deepseek-harness) --version prints "0.1.0-rc.6"
 dsh_version="$(nix shell --inputs-from . '.#deepseek-harness' -c dsh --version | tail -n 1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?).*/\1/')"
 
 test -n "$opencode_version"
 test -n "$jcode_version"
 test -n "$pi_version"
-test -n "$reasonix_version"
-test -n "$maki_version"
 test -n "$dsh_version"
 
 cat > badges/opencode.json <<EOF
@@ -62,23 +56,6 @@ cat > badges/pi-coding-agent.json <<EOF
 }
 EOF
 
-cat > badges/reasonix.json <<EOF
-{
-  "schemaVersion": 1,
-  "label": "reasonix",
-  "message": "$reasonix_version",
-  "color": "orange"
-}
-EOF
-
-cat > badges/maki.json <<EOF
-{
-  "schemaVersion": 1,
-  "label": "maki",
-  "message": "$maki_version",
-  "color": "yellow"
-}
-EOF
 
 cat > badges/deepseek-harness.json <<EOF
 {
@@ -89,4 +66,4 @@ cat > badges/deepseek-harness.json <<EOF
 }
 EOF
 
-echo "badges: opencode=$opencode_version jcode=$jcode_version pi-coding-agent=$pi_version reasonix=$reasonix_version maki=$maki_version deepseek-harness=$dsh_version"
+echo "badges: opencode=$opencode_version jcode=$jcode_version pi-coding-agent=$pi_version deepseek-harness=$dsh_version"

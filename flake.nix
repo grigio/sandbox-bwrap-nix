@@ -19,76 +19,10 @@
 
   outputs = { self, nixpkgs, jcode }:
     let
-      # x86_64-linux only: reasonix and the jcode binary cache are
+      # x86_64-linux only: the jcode binary cache is
       # x86-64 only, and CI runs on x86_64 runners.
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-
-      # Generic packaging for tools shipped as a single statically linked
-      # binary in a flat tarball on GitHub Releases (reasonix, maki): a pure
-      # download + install, no build steps and no runtime deps.
-      # Only the x86-64 build is used: the flake targets x86_64-linux.
-      # `url` may interpolate `${version}`. The pin updater scripts
-      # (scripts/update-*.sh) rewrite the `version` and `hash` lines inside
-      # each package's block below, so keep those lines before the closing
-      # `};` of the block they belong to.
-      githubReleaseBin =
-        { pname, version, url, hash, binary, description, homepage }:
-        pkgs.stdenvNoCC.mkDerivation {
-          inherit pname version;
-          src = pkgs.fetchurl { inherit url hash; };
-          # The tarballs have no wrapping directory, so files land at the top
-          # level of the build dir.
-          sourceRoot = ".";
-          installPhase = ''
-            runHook preInstall
-            install -Dm755 ${binary} $out/bin/${binary}
-            runHook postInstall
-          '';
-          meta = with pkgs.lib; {
-            inherit description homepage;
-            license = licenses.mit;
-            mainProgram = binary;
-            platforms = [ "x86_64-linux" ];
-          };
-        };
-
-      # Reasonix CLI is shipped as a statically linked Go binary in a flat
-      # tarball per platform on GitHub Releases. The version/hash pins below
-      # are kept current by scripts/update-reasonix.sh, run weekly by
-      # .github/workflows/update-reasonix.yml.
-      reasonixFor =
-        let
-          version = "1.34.0";
-        in
-        githubReleaseBin {
-          inherit version;
-          pname = "reasonix";
-          url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
-          hash = "sha256-AoCx0itYcAU+TAU6l0FfM8FWO7lpUKylXP2e6agJar0=";
-          binary = "reasonix";
-          description = "DeepSeek-native AI coding agent for your terminal";
-          homepage = "https://github.com/esengine/DeepSeek-Reasonix";
-        };
-
-      # Maki (https://github.com/tontinton/maki) is an AI coding agent shipped
-      # as a statically linked musl binary in a flat tarball per platform on
-      # GitHub Releases. The version/hash pins below are kept current by
-      # scripts/update-maki.sh, run weekly by
-      # .github/workflows/update-maki.yml.
-      makiFor =
-        let
-          version = "0.4.12";
-        in
-        githubReleaseBin {
-          inherit version;
-          pname = "maki";
-          url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
-          hash = "sha256-k2GcRBiDbm1M4/ipgL3frMxiAxkAMdqVSgYg9ggPTbg=";
-          binary = "maki";
-          description = "An efficient AI coding agent extendable by neovim like Lua plugins";
-          homepage = "https://github.com/tontinton/maki";
-        };
 
       # DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), the
       # `dsh` CLI from deepseek-ai. Upstream distributes it as the public npm
@@ -141,8 +75,8 @@
             makeWrapper ${pkgs.nodejs_24}/bin/node $out/bin/dsh \
               --add-flags --expose-internals \
               --add-flags $out/lib/node_modules/@deepseek-ai/dsh/lib/bin.js
-            # Convenience alias to the package name, mirroring the reasonix /
-            # maki smoke tests (the upstream binary is `dsh`).
+            # Convenience alias to the package name (the upstream binary is
+            # `dsh`).
             ln -s dsh $out/bin/deepseek-harness
           '';
 
@@ -159,11 +93,6 @@
         # Building the dev shell exercises the whole tool set, including
         # jcode from the grigio binary cache.
         default = self.devShells.${system}.default;
-        # Building the pinned binary packages validates the version/hash
-        # pins in flake.nix (a wrong pin fails the fixed-output fetch), so
-        # `nix flake check` catches any drift or updater-script bug.
-        reasonix = self.packages.${system}.reasonix;
-        maki = self.packages.${system}.maki;
         # Building the dsh npm wrap validates the npm version/hash pins and
         # the vendored package-lock (a wrong pin fails the fixed-output
         # fetch, and the vendored lock must match the src package.json).
@@ -177,19 +106,12 @@
         '';
       };
 
-      # `nix build .#reasonix`, `nix run .#reasonix`, or `nix profile install`
       packages.${system} = {
-        reasonix = reasonixFor;
-        maki = makiFor;
         deepseek-harness = deepseekHarnessFor;
       };
 
       devShells.${system} =
         let
-          # reasonix and maki are packaged by this flake (see `packages`),
-          # not nixpkgs
-          reasonix = reasonixFor;
-          maki = makiFor;
           deepseek-harness = deepseekHarnessFor;
           # jcode comes prebuilt from the grigio binary cache; this flake only
           # targets x86_64-linux, where the cache makes it a pure download.
@@ -228,8 +150,6 @@
               yt-dlp
               opencode
               pi-coding-agent
-              reasonix
-              maki
               deepseek-harness
               codex
               # Browser support: Firefox's GUI needs XKB keyboard rules and

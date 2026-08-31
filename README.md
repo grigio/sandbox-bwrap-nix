@@ -4,8 +4,6 @@
 [![opencode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/opencode.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![jcode version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/jcode.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![pi-coding-agent version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/pi-coding-agent.json)](https://github.com/grigio/sandbox-bwrap-nix)
-[![reasonix version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/reasonix.json)](https://github.com/grigio/sandbox-bwrap-nix)
-[![maki version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/maki.json)](https://github.com/grigio/sandbox-bwrap-nix)
 [![deepseek-harness version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/grigio/sandbox-bwrap-nix/master/badges/deepseek-harness.json)](https://github.com/grigio/sandbox-bwrap-nix)
 
 Super simple, fast and effective sandbox to run commands in a lightweight bubblewrap + nix sandbox. No docker/podman containers needed
@@ -85,7 +83,7 @@ demo
 
 The environment is cleared (`--clearenv`), networking is shared (`--share-net`), and PID namespace is unshared (`--unshare-pid`).
 
-Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, pi-coding-agent, reasonix, maki, deepseek-harness (dsh), codex, cargo, yt-dlp, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
+Inside the sandbox, `nix develop` with the [flake](flake.nix) provisions a dev shell containing: **nix, git, bun, uv, jcode, opencode, pi-coding-agent, deepseek-harness (dsh), codex, cargo, yt-dlp, gnumake, micro, less, btop**, bash completion, and the `clear`/`reset` terminal commands (ncurses).
 
 ## What the sandbox isolates (and what it doesn't)
 
@@ -153,8 +151,7 @@ The cache is configured in three places, all of which must stay in sync:
 
 Paths the cache does not have fall back to building from source. The grigio
 cache only publishes **x86_64-linux**, so on that platform jcode is a pure
-download. This flake targets x86_64-linux only: reasonix is published for
-x86-64 (amd64) and CI runs on x86_64 runners.
+download. This flake targets x86_64-linux only, and CI runs on x86_64 runners.
 
 ## Requirements
 
@@ -167,16 +164,14 @@ x86-64 (amd64) and CI runs on x86_64 runners.
 ├── start-sandbox.sh        # Entry point — invokes bwrap
 ├── flake.nix               # Nix flake with dev shell definition
 ├── flake.lock              # Pinned nixpkgs revision
-├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, reasonix, maki, deepseek-harness), updated by CI
+├── badges/                 # Version badge data (opencode, jcode, pi-coding-agent, deepseek-harness), updated by CI
 ├── vendor/dsh/             # Vendored package-lock.json for the deepseek-harness npm wrap
 ├── scripts/
 │   ├── update-badges.sh      # Regenerates badges/ from the versions pinned in the flake (used by CI, runnable locally)
-│   ├── update-reasonix.sh    # Bumps the reasonix version/hash pins in flake.nix to the latest GitHub CLI release (used by CI, runnable locally)
-│   ├── update-maki.sh        # Bumps the maki version/hash pins in flake.nix to the latest GitHub release (used by CI, runnable locally)
 │   └── update-dsh.sh         # Bumps the dsh version/hash pins + vendored lock in flake.nix to the latest @deepseek-ai/dsh npm release (used by CI, runnable locally)
 ├── .github/
 │   ├── actions/setup-nix/  # Composite action: Nix install + jcode binary cache for CI
-│   └── workflows/          # GitHub Actions: sandbox CI, flake.lock updater, reasonix/maki/dsh pin updaters, version badge updater
+│   └── workflows/          # GitHub Actions: sandbox CI, flake.lock updater, dsh pin updater, version badge updater
 ├── sandbox-home/           # Isolated home directory
 │   ├── .bashrc             # Colored prompt, git branch, aliases
 │   ├── .bash_profile       # Sources .bashrc
@@ -222,22 +217,11 @@ smoke-tests the sandbox, regenerates the version badges from the new lock, and
 merges everything through a PR. The badge workflow additionally refreshes the
 badges on every push to `master`, so they always match the locked versions.
 
-The pinned reasonix version in `flake.nix` is updated the same way: weekly the
-**reasonix updater** workflow runs
-[`scripts/update-reasonix.sh`](scripts/update-reasonix.sh), which queries the
-latest `vX.Y.Z` CLI release on GitHub (the `desktop-v*` releases are a separate
-desktop-app track and are skipped), rewrites the version/hash pins from the
-release's `SHA256SUMS`, validates with `nix build .#reasonix`, and auto-merges
-a PR after smoke-testing the sandbox and refreshing the badges. The maki pin is
-kept current by the same pattern:
-[`scripts/update-maki.sh`](scripts/update-maki.sh) runs weekly, validates with
-`nix build .#maki`, and auto-merges a PR. The dsh (deepseek-harness) pin is
-kept current the same way:
+The dsh (deepseek-harness) pin is kept current the same way:
 [`scripts/update-dsh.sh`](scripts/update-dsh.sh) runs weekly, re-downloads the
 published npm tarball, regenerates the vendored lock and its `npmDepsHash`,
 validates with `nix build .#deepseek-harness`, and auto-merges a PR. To bump
-any of these tools manually, edit the `version` and `hash` lines in `flake.nix`
-or run `bash scripts/update-reasonix.sh` / `bash scripts/update-maki.sh` /
+the tool manually, edit the `version` and `hash` lines in `flake.nix` or run
 `bash scripts/update-dsh.sh`.
 
 ## deepseek-harness (dsh): npm wrap, no source build
