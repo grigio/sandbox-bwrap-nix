@@ -21,12 +21,8 @@
     let
       # x86_64-linux only: reasonix and the jcode binary cache are
       # x86-64 only, and CI runs on x86_64 runners.
-      systems = [ "x86_64-linux" ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;
-      # Reference nixpkgs' own lazily-evaluated package set. All outputs share
-      # the same per-system evaluation, unlike `import nixpkgs` which evaluates
-      # the whole tree anew on every call.
-      pkgsFor = system: nixpkgs.legacyPackages.${system};
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
 
       # Generic packaging for tools shipped as a single statically linked
       # binary in a flat tarball on GitHub Releases (reasonix, maki): a pure
@@ -37,10 +33,7 @@
       # each package's block below, so keep those lines before the closing
       # `};` of the block they belong to.
       githubReleaseBin =
-        { system, pname, version, url, hash, binary, description, homepage }:
-        let
-          pkgs = pkgsFor system;
-        in
+        { pname, version, url, hash, binary, description, homepage }:
         pkgs.stdenvNoCC.mkDerivation {
           inherit pname version;
           src = pkgs.fetchurl { inherit url hash; };
@@ -64,12 +57,12 @@
       # tarball per platform on GitHub Releases. The version/hash pins below
       # are kept current by scripts/update-reasonix.sh, run weekly by
       # .github/workflows/update-reasonix.yml.
-      reasonixFor = system:
+      reasonixFor =
         let
           version = "1.34.0";
         in
         githubReleaseBin {
-          inherit system version;
+          inherit version;
           pname = "reasonix";
           url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/v${version}/reasonix-linux-amd64.tar.gz";
           hash = "sha256-AoCx0itYcAU+TAU6l0FfM8FWO7lpUKylXP2e6agJar0=";
@@ -83,12 +76,12 @@
       # GitHub Releases. The version/hash pins below are kept current by
       # scripts/update-maki.sh, run weekly by
       # .github/workflows/update-maki.yml.
-      makiFor = system:
+      makiFor =
         let
           version = "0.4.12";
         in
         githubReleaseBin {
-          inherit system version;
+          inherit version;
           pname = "maki";
           url = "https://github.com/tontinton/maki/releases/download/v${version}/maki-v${version}-x86_64-unknown-linux-musl.tar.gz";
           hash = "sha256-k2GcRBiDbm1M4/ipgL3frMxiAxkAMdqVSgYg9ggPTbg=";
@@ -108,9 +101,8 @@
       # hourly, but the npm package version is the stable unit to pin. The
       # version/hash pins below are kept current by scripts/update-dsh.sh, run
       # weekly by .github/workflows/update-dsh.yml.
-      deepseekHarnessFor = system:
+      deepseekHarnessFor =
         let
-          pkgs = pkgsFor system;
           version = "0.1.1-rc.2";
           dshLock = ./vendor/dsh/package-lock.json;
         in
@@ -161,50 +153,44 @@
     in
     {
       # `nix fmt` formats flake.nix with nixpkgs-fmt
-      formatter = forAllSystems (system: (pkgsFor system).nixpkgs-fmt);
+      formatter.${system} = pkgs.nixpkgs-fmt;
 
-      checks = forAllSystems (system:
-        let
-          pkgs = pkgsFor system;
-        in
-        {
-          # Building the dev shell exercises the whole tool set, including
-          # jcode from the grigio binary cache.
-          default = self.devShells.${system}.default;
-          # Building the pinned binary packages validates the version/hash
-          # pins in flake.nix (a wrong pin fails the fixed-output fetch), so
-          # `nix flake check` catches any drift or updater-script bug.
-          reasonix = self.packages.${system}.reasonix;
-          maki = self.packages.${system}.maki;
-          # Building the dsh npm wrap validates the npm version/hash pins and
-          # the vendored package-lock (a wrong pin fails the fixed-output
-          # fetch, and the vendored lock must match the src package.json).
-          deepseek-harness = self.packages.${system}.deepseek-harness;
-          # Formatting gate: `nix flake check` (and CI) fail if flake.nix is
-          # not nixpkgs-fmt clean. `nix fmt` normalizes it locally.
-          fmt = pkgs.runCommand "check-nixpkgs-fmt" { src = self; } ''
-            set -e
-            ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt --check $src/flake.nix
-            touch $out
-          '';
-        });
+      checks.${system} = {
+        # Building the dev shell exercises the whole tool set, including
+        # jcode from the grigio binary cache.
+        default = self.devShells.${system}.default;
+        # Building the pinned binary packages validates the version/hash
+        # pins in flake.nix (a wrong pin fails the fixed-output fetch), so
+        # `nix flake check` catches any drift or updater-script bug.
+        reasonix = self.packages.${system}.reasonix;
+        maki = self.packages.${system}.maki;
+        # Building the dsh npm wrap validates the npm version/hash pins and
+        # the vendored package-lock (a wrong pin fails the fixed-output
+        # fetch, and the vendored lock must match the src package.json).
+        deepseek-harness = self.packages.${system}.deepseek-harness;
+        # Formatting gate: `nix flake check` (and CI) fail if flake.nix is
+        # not nixpkgs-fmt clean. `nix fmt` normalizes it locally.
+        fmt = pkgs.runCommand "check-nixpkgs-fmt" { src = self; } ''
+          set -e
+          ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt --check $src/flake.nix
+          touch $out
+        '';
+      };
 
       # `nix build .#reasonix`, `nix run .#reasonix`, or `nix profile install`
-      packages = forAllSystems (system: {
-        reasonix = reasonixFor system;
-        maki = makiFor system;
-        deepseek-harness = deepseekHarnessFor system;
-      });
+      packages.${system} = {
+        reasonix = reasonixFor;
+        maki = makiFor;
+        deepseek-harness = deepseekHarnessFor;
+      };
 
-      devShells = forAllSystems (system:
+      devShells.${system} =
         let
-          pkgs = pkgsFor system;
           # reasonix and maki are packaged by this flake (see `packages`),
           # not nixpkgs
-          reasonix = self.packages.${system}.reasonix;
-          maki = self.packages.${system}.maki;
-          # dsh (DeepSeek Harness) is packaged by this flake (see `packages`)
-          deepseek-harness = self.packages.${system}.deepseek-harness;
+          reasonix = reasonixFor;
+          maki = makiFor;
+          deepseek-harness = deepseekHarnessFor;
           # jcode comes prebuilt from the grigio binary cache; this flake only
           # targets x86_64-linux, where the cache makes it a pure download.
           jcode' = jcode.packages.${system}.default or null;
@@ -264,8 +250,9 @@
               shared-mime-info
               hicolor-icon-theme
               gdk-pixbuf
-            ] ++ lib.optionals (jcode' != null) [ jcode' ]
-            ++ [ bash-completion bashInteractive ];
+              bash-completion
+              bashInteractive
+            ] ++ lib.optionals (jcode' != null) [ jcode' ];
 
             shellHook = ''
               export SHELL=${pkgs.bashInteractive}/bin/bash
@@ -290,6 +277,6 @@
             # rather than SSL_CERT_FILE; set both for robustness.
             CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
           };
-        });
+        };
     };
 }
