@@ -43,8 +43,5 @@ jobs:
       - name: Run sandbox test (pi-coding-agent)
         run: ./start-sandbox.sh pi --version
 
-      - name: Run sandbox test (maki)
-        run: ./start-sandbox.sh maki --version
-
       - name: Run sandbox test (deepseek-harness)
         run: ./start-sandbox.sh dsh --version

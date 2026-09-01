@@ -5,7 +5,7 @@ on:
     branches: [master]
   schedule:
     # daily at 05:00 UTC; versions change when flake.lock is bumped or when
-    # pins in flake.nix move (e.g. maki)
+    # pins in flake.nix move (e.g. dsh pins)
     - cron: "0 5 * * *"
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
 
       - uses: ./.github/actions/setup-nix
 
-      - name: Regenerate opencode, jcode, pi-coding-agent, maki and deepseek-harness badges
+      - name: Regenerate opencode, jcode, pi-coding-agent and deepseek-harness badges
         run: bash scripts/update-badges.sh
 
       - name: Commit badge updates
@@ -35,6 +35,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Badges unchanged, nothing to commit"
           else
-            git commit -m "badges: update opencode/jcode/pi-coding-agent/maki/deepseek-harness versions"
+            git commit -m "badges: update opencode/jcode/pi-coding-agent/deepseek-harness versions"
             git push
           fi
