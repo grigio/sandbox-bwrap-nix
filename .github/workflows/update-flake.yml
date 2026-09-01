@@ -76,7 +76,6 @@ jobs:
           ./start-sandbox.sh opencode --version
           ./start-sandbox.sh jcode --version
           ./start-sandbox.sh pi --version
-          ./start-sandbox.sh reasonix --version
           ./start-sandbox.sh maki --version
           ./start-sandbox.sh dsh --version
 
@@ -97,7 +96,7 @@ jobs:
         run: |
           PR_BODY="Automated daily \`nix flake update\` (nixpkgs and jcode inputs).
           - Validated with \`nix flake check --all-systems\`.
-          - Sandbox smoke-tested with opencode, jcode, pi-coding-agent, reasonix, maki and deepseek-harness.
+          - Sandbox smoke-tested with opencode, jcode, pi-coding-agent, maki and deepseek-harness.
           - Version badges regenerated from the new lock."
           # Reuse an existing open PR from a previous run instead of stacking
           # a second one for the same auto/update-flake-lock branch.

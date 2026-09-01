@@ -5,8 +5,7 @@ name: update maki pin
 #
 # Flow: scripts/update-maki.sh bumps the pins and validates with
 # `nix build .#maki`; if something changed we flake-check, smoke-test the
-# sandbox, refresh the version badges, then auto-merge a PR (same pattern as
-# update-reasonix.yml).
+# sandbox, refresh the version badges, then auto-merge a PR.
 
 on:
   workflow_dispatch:
