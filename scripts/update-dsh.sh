@@ -59,7 +59,7 @@ test -n "$latest_version" || { echo "error: could not resolve ${pkg} latest vers
 # and `postInstall` attr-sets, each closed with `};`). The range therefore runs
 # to the first `});`.
 pinned="$(
-  sed -nE '/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*\}\);$/ {
+  sed -nE '/^[[:space:]]*deepseekHarnessFor/,/^[[:space:]]*\}\);$/ {
     s/^[[:space:]]*version = "([^"]+)";/\1/p
   }' flake.nix | tail -n 1
 )"
@@ -113,7 +113,7 @@ test -n "$npmdeps_hash" || { echo "error: could not derive npmDepsHash for ${pkg
 # --- rewrite the pins, only inside the deepseekHarnessFor block ---------------
 # version, the tarball src hash, and the npmDepsHash all live in that block.
 # Range runs to the closing `});` (the block nests attr-sets closed with `};`).
-sed -i -E "/^[[:space:]]*deepseekHarnessFor = system:/,/^[[:space:]]*\}\);$/ {
+sed -i -E "/^[[:space:]]*deepseekHarnessFor/,/^[[:space:]]*\}\);$/ {
   s/version = \"[^\"]+\";/version = \"${latest_version}\";/
   s|hash = \"sha256-[A-Za-z0-9+/=]+\";|hash = \"${sri}\";|
   s|npmDepsHash = \"sha256-[A-Za-z0-9+/=]+\";|npmDepsHash = \"${npmdeps_hash}\";|
