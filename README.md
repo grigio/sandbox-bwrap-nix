@@ -101,7 +101,7 @@ The sandbox is a blast-radius reduction for convenient everyday use, not a hard 
 | Hostname | `--unshare-uts` | Private hostname namespace |
 | `/tmp`, `/dev/shm` | tmpfs | Private scratch space |
 | `/dev` | tmpfs dev setup via `--dev` | Only `null/zero/full/random/urandom/tty` bound from host plus a private devpts instance (`/dev/ptmx` → `pts/ptmx`). No block devices, no host ptys |
-| Users | Synthetic `/etc/passwd`, `/etc/group` | Only the current user exists (as `nixuser`); host accounts are absent |
+| Users | Synthetic `/etc/passwd`, `/etc/group` | The host user is replaced by `nixuser` (same uid/gid); other account entries may remain |
 | Nix build dirs | `/nix/var/nix/builds` tmpfs | Build artifacts in that path never touch the host |
 
 ### Not isolated (by design)
