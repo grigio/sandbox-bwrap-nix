@@ -37,7 +37,7 @@
       # weekly by .github/workflows/update-dsh.yml.
       deepseekHarnessFor =
         let
-          version = "0.2.0-rc.2";
+          version = "0.2.1-rc.2";
           dshLock = ./vendor/dsh/package-lock.json;
         in
         pkgs.buildNpmPackage.override { nodejs = pkgs.nodejs_24; } (finalAttrs: {
@@ -53,14 +53,14 @@
 
           src = pkgs.fetchurl {
             url = "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-${finalAttrs.version}.tgz";
-            hash = "sha256-vSeEfERc1opWWsH5HAa7vMdjnvkwcfZ4u1nF66/ziFk=";
+            hash = "sha256-QOPQJcAkDEMW/0Le6b7cdwnA+ziuoQVDtHB27Sr1Lh0=";
           };
 
           postPatch = ''
             cp ${dshLock} ./package-lock.json
           '';
 
-          npmDepsHash = "sha256-SEjqMGOMv+3f99uh7JpmupbfggGosFHlqI0TyisdBiE=";
+          npmDepsHash = "sha256-tGboJ6kq3KNYiy88UO2HDIOMiDcUGGlfX6u64MoNeDo=";
 
           # The published package ships prebuilt lib/ JS; there is nothing to
           # compile. Native addons (node-pty, koffi) are still built by
